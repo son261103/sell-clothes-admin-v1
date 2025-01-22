@@ -1,0 +1,44 @@
+/* Import các phần cần thiết của Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Các style tùy chỉnh */
+@layer components {
+    .btn {
+        @apply bg-primary text-white p-2 rounded-md;
+    }
+}
+
+/* Scrollbar */
+/* Light mode scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #fcf4f4; /* lightBackground */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #bd8790; /* primary */
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #4e4b56; /* secondary */
+}
+
+/* Dark mode scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: #262626; /* darkBackground */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #bd8790; /* primary */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #d8e2dc; /* highlight */
+}
+
