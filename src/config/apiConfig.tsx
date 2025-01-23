@@ -1,6 +1,6 @@
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { AUTH_ENDPOINTS } from '../constants/authConstant';
-import type { TokenResponse } from '../types/auth/authResponse';
+import type { TokenResponse } from '../types';
 import type { ApiResponse } from '../types';
 
 const API_CONFIG = {

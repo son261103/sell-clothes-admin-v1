@@ -15,12 +15,12 @@ export const selectOtpSent = createSelector(selectAuthState, (auth) => auth.otpS
 // Compound selectors (memoized)
 export const selectUserRoles = createSelector(
     selectUser,
-    (user) => user?.roles || [] // Trả về cùng tham chiếu nếu roles không đổi
+    (user) => user?.roles || []
 );
 
 export const selectUserPermissions = createSelector(
     selectUser,
-    (user) => user?.permissions || [] // Trả về cùng tham chiếu nếu permissions không đổi
+    (user) => user?.permissions || []
 );
 
 export const selectUserEmail = createSelector(
@@ -37,13 +37,6 @@ export const selectUserId = createSelector(
     selectUser,
     (user) => user?.userId || null
 );
-
-// Helper selectors (memoized)
-export const selectHasRole = (role: string) =>
-    createSelector(selectUserRoles, (roles) => roles.includes(role));
-
-export const selectHasPermission = (permission: string) =>
-    createSelector(selectUserPermissions, (permissions) => permissions.includes(permission));
 
 // Auth status selector (memoized)
 export const selectAuthStatus = createSelector(

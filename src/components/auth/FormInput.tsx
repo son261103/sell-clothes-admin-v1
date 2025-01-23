@@ -39,7 +39,7 @@ const FormInput: React.FC<FormInputProps> = ({
                     placeholder={placeholder}
                     className={`input input-bordered w-full bg-lightBackground dark:bg-darkBackground 
                      text-textDark dark:text-textLight pr-10 
-                     ${error ? 'input-error' : ''}`}
+                     ${error ? 'input-error' : ''}`} // Apply error styles when there's an error
                     value={value}
                     onChange={onChange}
                     required={required}
@@ -60,7 +60,7 @@ const FormInput: React.FC<FormInputProps> = ({
             </div>
             {error && (
                 <label className="label">
-                    <span className="label-text-alt text-error">{error}</span>
+                    <span className="label-text-alt text-error">{error}</span> {/* Show error message */}
                 </label>
             )}
         </div>
