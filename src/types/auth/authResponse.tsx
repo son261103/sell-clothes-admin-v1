@@ -1,3 +1,25 @@
+export interface ApiResponse<T> {
+    success: boolean;
+    message: string;
+    data: T;
+    accessToken?: string;
+    refreshToken?: string;
+    tokenType?: string;
+    expiresIn?: number;
+    userId?: number;
+    username?: string;
+    email?: string;
+    fullName?: string;
+    roles?: string[];
+    permissions?: string[];
+    errorCode?: string;
+}
+export interface ErrorResponse {
+    message: string;
+    success: boolean;
+    errorCode?: string;
+}
+
 export interface RegisterResponse {
     userId: number;
     username: string;
@@ -8,7 +30,7 @@ export interface RegisterResponse {
 
 export interface TokenResponse {
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string;
     tokenType: string;
     expiresIn: number;
     userId: number;
@@ -17,10 +39,4 @@ export interface TokenResponse {
     fullName: string;
     roles: string[];
     permissions: string[];
-}
-
-export interface AuthError {
-    message: string;
-    field?: string;
-    code?: string;
 }

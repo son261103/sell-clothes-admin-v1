@@ -4,7 +4,6 @@ import LoginPage from "../pages/Auth/LoginPage.tsx";
 import RegisterPage from "../pages/Auth/RegisterPage.tsx";
 import ForgotPasswordPage from "../pages/Auth/ForgotPasswordPage.tsx";
 
-
 export const authRoutes: RouteObject = {
     path: '/auth',
     element: <AuthLayout />,

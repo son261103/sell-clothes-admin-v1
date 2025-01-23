@@ -1,5 +1,3 @@
-export interface ApiResponse<T = unknown> {
-    success: boolean;
-    message: string;
-    data?: T;
-}
+// Re-export auth types for convenience
+export * from './auth/authRequest';
+export * from './auth/authResponse';

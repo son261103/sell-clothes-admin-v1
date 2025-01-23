@@ -9,4 +9,3 @@ export const AUTH_ENDPOINTS = {
     REFRESH_TOKEN: '/auth/refresh-token',
     LOGOUT: '/auth/logout'
 } as const;
-

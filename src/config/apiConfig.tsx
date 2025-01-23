@@ -1,7 +1,7 @@
-import axios, {InternalAxiosRequestConfig, AxiosError} from 'axios';
-import {AUTH_ENDPOINTS} from '../constants/authConstant';
-import type {TokenResponse} from '../types/auth/authResponse';
-import type {ApiResponse} from '../types';
+import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
+import { AUTH_ENDPOINTS } from '../constants/authConstant';
+import type { TokenResponse } from '../types/auth/authResponse';
+import type { ApiResponse } from '../types';
 
 const API_CONFIG = {
     BASE_URL: import.meta.env.VITE_API_BASE_URL,
@@ -17,27 +17,13 @@ interface CustomAxiosError extends AxiosError {
     config: InternalAxiosRequestConfig & { _retry?: boolean };
 }
 
-const clearAuthData = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-};
-
-const redirectToLogin = () => {
-    const currentPath = window.location.pathname;
-    if (!currentPath.includes('/login')) {
-        sessionStorage.setItem('redirectPath', currentPath);
-        window.location.href = '/login';
-    }
-};
-
-const api = axios.create({
+const apiConfig = axios.create({
     baseURL: `${API_CONFIG.BASE_URL}${API_CONFIG.API_VERSION}`,
     timeout: API_CONFIG.TIMEOUT,
     headers: API_CONFIG.HEADERS,
 });
 
-api.interceptors.request.use(
+apiConfig.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('accessToken');
         if (token) {
@@ -48,7 +34,7 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-api.interceptors.response.use(
+apiConfig.interceptors.response.use(
     (response) => response,
     async (error: CustomAxiosError) => {
         const originalRequest = error.config;
@@ -70,34 +56,33 @@ api.interceptors.response.use(
 
                 const response = await tokenRefreshInstance.post<ApiResponse<TokenResponse>>(
                     AUTH_ENDPOINTS.REFRESH_TOKEN,
-                    {refreshToken}
+                    { refreshToken }
                 );
 
                 if (response.data.data) {
-                    const {accessToken, refreshToken: newRefreshToken} = response.data.data;
+                    const { accessToken, refreshToken: newRefreshToken } = response.data.data;
                     localStorage.setItem('accessToken', accessToken);
                     if (newRefreshToken) {
                         localStorage.setItem('refreshToken', newRefreshToken);
                     }
                     originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-                    return api(originalRequest);
+                    return apiConfig(originalRequest);
                 }
-                throw new Error('Failed to refresh token');
-            } catch (refreshError) {
-                if (axios.isAxiosError(refreshError) && refreshError.response?.status === 403) {
-                    clearAuthData();
-                    redirectToLogin();
-                }
-                return Promise.reject(refreshError);
-            }
-        }
 
-        if (error.response?.status === 403) {
-            window.location.href = '/forbidden';
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                throw new Error('Failed to refresh token');
+            } catch (error) {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                return Promise.reject(error);
+            }
         }
 
         return Promise.reject(error);
     }
 );
 
-export default api;
+export default apiConfig;
