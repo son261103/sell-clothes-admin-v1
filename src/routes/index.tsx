@@ -33,7 +33,7 @@ const protectedAdminRoutes: RouteObjectWithMeta = {
 const publicRoutes: RouteObject[] = [
     {
         path: '/',
-        element: <Navigate to="/auth/login" replace />
+        element: <Navigate to="/admin/dashboard" replace />
     },
     authRoutes,
 ];

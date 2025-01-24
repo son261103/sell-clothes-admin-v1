@@ -12,9 +12,6 @@ export interface RouteObjectWithMeta extends Omit<RouteObject, 'children'> {
 export const adminRoutes: RouteObjectWithMeta = {
     path: '/admin',
     element: <AdminLayout />,
-    meta: {
-        requiredPermissions: ['VIEW_ROLE']
-    },
     children: [
         {
             index: true,
