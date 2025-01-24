@@ -7,7 +7,6 @@ import {toast} from 'react-hot-toast';
 import {jwtDecode} from 'jwt-decode';
 import {validateForm} from '../../utils/auth/loginUtils';
 
-// Define a type for the decoded token structure
 interface DecodedToken {
     roles: string[];
 }
@@ -63,10 +62,10 @@ const LoginPage: React.FC = () => {
                     const decoded = jwtDecode<DecodedToken>(token);
                     const roles = decoded.roles || [];
 
-                    if (!roles.includes('ROLE_CUSTOMER')) {
+                    if (roles.includes('ROLE_CUSTOMER')) {
+                        window.location.href = 'http://localhost:3001/';
+                    } else if (!roles.includes('ROLE_CUSTOMER')) {
                         navigate('/admin/dashboard');
-                    } else if (roles.includes('ROLE_CUSTOMER')) {
-                        navigate('/home');
                     } else {
                         navigate('/unauthorized');
                     }

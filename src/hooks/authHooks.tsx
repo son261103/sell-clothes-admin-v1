@@ -129,6 +129,7 @@ export const useOtp = () => {
     const otpSent = useAppSelector(selectOtpSent);
     const {isLoading, error} = useAppSelector(selectAuthStatus);
 
+
     const handleSendOtp = useCallback(
         async (data: SendOtpRequest) => {
             try {
