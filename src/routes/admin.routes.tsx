@@ -1,6 +1,6 @@
 import { RouteObject } from 'react-router-dom';
-import DashboardPage from "../pages/Dashboard/DashboardPage.tsx";
-import AdminLayout from "../layouts/AdminLayout.tsx";
+import DashboardPage from "../pages/Dashboard/DashboardPage";
+import AdminLayout from "../layouts/AdminLayout";
 
 export interface RouteObjectWithMeta extends Omit<RouteObject, 'children'> {
     children?: RouteObjectWithMeta[];
@@ -12,14 +12,23 @@ export interface RouteObjectWithMeta extends Omit<RouteObject, 'children'> {
 export const adminRoutes: RouteObjectWithMeta = {
     path: '/admin',
     element: <AdminLayout />,
+    meta: {
+        requiredPermissions: []
+    },
     children: [
         {
             index: true,
-            element: <DashboardPage />
+            element: <DashboardPage />,
+            meta: {
+                requiredPermissions: []
+            }
         },
         {
             path: 'dashboard',
-            element: <DashboardPage />
+            element: <DashboardPage />,
+            meta: {
+                requiredPermissions: []
+            }
         },
         {
             path: 'users',

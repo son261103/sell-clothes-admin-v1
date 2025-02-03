@@ -39,8 +39,9 @@ class AuthService {
 
             const { accessToken, tokenType } = response.data;
 
+            // Chuyển sang dùng sessionStorage cho accessToken
             if (accessToken) {
-                localStorage.setItem('accessToken', `${tokenType || 'Bearer'} ${accessToken}`);
+                sessionStorage.setItem('accessToken', `${tokenType || 'Bearer'} ${accessToken}`);
             }
 
 
@@ -51,6 +52,7 @@ class AuthService {
             throw AuthService.handleError(err);
         }
     }
+
     async register(data: RegisterRequest, otp?: string): Promise<ApiResponse<RegisterResponse>> {
         try {
             const response = await apiConfig.post<ApiResponse<RegisterResponse>>(
@@ -137,11 +139,9 @@ class AuthService {
             );
 
             if (response.data.data) {
-                const {accessToken, refreshToken} = response.data.data;
-                localStorage.setItem('accessToken', accessToken);
-                if (refreshToken) {
-                    localStorage.setItem('refreshToken', refreshToken);
-                }
+                const {accessToken} = response.data.data;
+                // Lưu token mới vào sessionStorage
+                sessionStorage.setItem('accessToken', accessToken);
             }
 
             return response.data;
@@ -151,17 +151,15 @@ class AuthService {
     }
 
     private clearLocalStorage(): void {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('accessToken');
+        localStorage.removeItem('rememberMe');
         localStorage.removeItem('user');
     }
 
     async logout(): Promise<ApiResponse<void>> {
         try {
-            const refreshToken = localStorage.getItem('refreshToken');
             const response = await apiConfig.post<ApiResponse<void>>(
-                AUTH_ENDPOINTS.LOGOUT,
-                {refreshToken}
+                AUTH_ENDPOINTS.LOGOUT
             );
 
             this.clearLocalStorage();

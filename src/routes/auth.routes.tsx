@@ -1,29 +1,29 @@
-import {RouteObject} from 'react-router-dom';
-import AuthLayout from "../layouts/AuthLayout.tsx";
-import LoginPage from "../pages/Auth/LoginPage.tsx";
-import RegisterPage from "../pages/Auth/RegisterPage.tsx";
-import ForgotPasswordPage from "../pages/Auth/ForgotPasswordPage.tsx";
-import VerifyOTPPage from "../pages/Auth/VerifyOTPPage.tsx";
+import { RouteObject } from 'react-router-dom';
+import AuthLayout from "../layouts/AuthLayout";
+import LoginPage from "../pages/Auth/LoginPage";
+import RegisterPage from "../pages/Auth/RegisterPage";
+import ForgotPasswordPage from "../pages/Auth/ForgotPasswordPage";
+import VerifyOTPPage from "../pages/Auth/VerifyOTPPage";
 
 export const authRoutes: RouteObject = {
     path: '/auth',
-    element: <AuthLayout/>,
+    element: <AuthLayout />,
     children: [
         {
             path: 'login',
-            element: <LoginPage/>
+            element: <LoginPage />
         },
         {
             path: 'register',
-            element: <RegisterPage/>
+            element: <RegisterPage />
         },
         {
             path: 'forgot-password',
-            element: <ForgotPasswordPage/>
+            element: <ForgotPasswordPage />
         },
         {
             path: 'verify-otp',
-            element: <VerifyOTPPage/>
+            element: <VerifyOTPPage />
         }
     ]
 };

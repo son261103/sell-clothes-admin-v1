@@ -97,7 +97,7 @@ const LoginPage: React.FC = () => {
             });
 
             if (success) {
-                const token = localStorage.getItem('accessToken');
+                const token = sessionStorage.getItem('accessToken');
 
                 if (token) {
                     const decoded = jwtDecode<DecodedToken>(token);
@@ -121,7 +121,7 @@ const LoginPage: React.FC = () => {
                     }
 
                     if (formData.rememberMe) {
-                        localStorage.setItem('rememberMe', 'true');
+                        sessionStorage.setItem('rememberMe', 'true');
                     }
 
                     toast.success('Đăng nhập thành công!');

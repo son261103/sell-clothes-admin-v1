@@ -3,11 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/authHooks';
 import { jwtDecode } from 'jwt-decode';
 
-// Define a type for the decoded token structure
 interface DecodedToken {
     roles: string[];
     permissions: string[];
-    status: string; // Status field to check user's account state
+    status: string;
 }
 
 interface ProtectedRouteProps {
@@ -26,59 +25,59 @@ export const ProtectedRoute = ({
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [isAuthorized, setIsAuthorized] = React.useState<boolean | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
+        const checkAuthorization = () => {
+            const token = sessionStorage.getItem('accessToken');
 
-        if (!token) {
-            // Save the current path to redirect back after login
-            sessionStorage.setItem('redirectPath', location.pathname);
-            navigate('/auth/login', { replace: true });
-            return;
-        }
-
-        try {
-            // Decode the token
-            const decoded = jwtDecode<DecodedToken>(token);
-            const userRoles = decoded.roles || [];
-            const userPermissions = decoded.permissions || [];
-            const userStatus = decoded.status;
-
-            // Redirect if the user's account is banned
-            if (userStatus === 'BANNED') {
-                navigate('/account-banned', { replace: true });
+            if (!token) {
+                sessionStorage.setItem('redirectPath', location.pathname);
+                navigate('/auth/login', { replace: true });
                 return;
             }
 
-            // Check required roles
-            const hasRequiredRole =
-                requiredRoles.length === 0 ||
-                requiredRoles.some(role => userRoles.includes(role));
+            try {
+                const decoded = jwtDecode<DecodedToken>(token);
+                const userRoles = decoded.roles || [];
+                const userPermissions = decoded.permissions || [];
 
-            // Check required permissions
-            const hasRequiredPermission =
-                requiredPermissions.length === 0 ||
-                requiredPermissions.some(permission => userPermissions.includes(permission));
+                // Chỉ check BANNED status và role/permission
+                // Không xử lý refresh token ở đây nữa vì đã có trong apiConfig
+                if (decoded.status === 'BANNED') {
+                    navigate('/account-banned', { replace: true });
+                    return;
+                }
 
-            // Check forbidden roles
-            const hasForbiddenRole = forbiddenRoles.some(role => userRoles.includes(role));
+                // Check forbidden roles first
+                if (forbiddenRoles.length > 0 && forbiddenRoles.some(role => userRoles.includes(role))) {
+                    navigate('/forbidden', { replace: true });
+                    return;
+                }
 
-            // Redirect if the user lacks required roles/permissions or has forbidden roles
-            if (
-                (!hasRequiredRole || !hasRequiredPermission) ||
-                hasForbiddenRole
-            ) {
-                navigate('/forbidden', { replace: true });
-                return;
+                // Check required roles and permissions
+                const hasRequiredRole = requiredRoles.length === 0 ||
+                    requiredRoles.some(role => userRoles.includes(role));
+                const hasRequiredPermission = requiredPermissions.length === 0 ||
+                    requiredPermissions.some(permission => userPermissions.includes(permission));
+
+                if (!hasRequiredRole || !hasRequiredPermission) {
+                    navigate('/forbidden', { replace: true });
+                    return;
+                }
+
+                setIsAuthorized(true);
+            } catch (error) {
+                // Chỉ handle invalid token format
+                // Không xử lý remove token vì đã có trong apiConfig
+                console.error('Token validation error:', error);
+                navigate('/auth/login', { replace: true });
             }
-        } catch {
-            // Invalid or corrupted token
-            localStorage.removeItem('accessToken');
-            navigate('/auth/login', { replace: true });
-        }
+        };
+
+        checkAuthorization();
     }, [isAuthenticated, requiredRoles, requiredPermissions, forbiddenRoles, navigate, location]);
 
-    if (!isAuthenticated) return null;
-
-    return <>{children}</>;
+    if (isAuthorized === null) return null;
+    return isAuthorized ? <>{children}</> : null;
 };
