@@ -13,6 +13,17 @@ interface DecodedToken {
     email: string;
 }
 
+interface LoginFormData {
+    loginId: string;
+    password: string;
+    rememberMe: boolean;
+}
+
+interface FormErrors {
+    loginId: string;
+    password: string;
+}
+
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const {login, isLoading, error} = useAuth();
@@ -20,13 +31,13 @@ const LoginPage: React.FC = () => {
     const [isResendCooldown, setIsResendCooldown] = useState(false);
     const [cooldownTime, setCooldownTime] = useState(0);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<LoginFormData>({
         loginId: '',
         password: '',
         rememberMe: false,
     });
 
-    const [errors, setErrors] = useState({
+    const [errors, setErrors] = useState<FormErrors>({
         loginId: '',
         password: '',
     });
@@ -47,8 +58,10 @@ const LoginPage: React.FC = () => {
     }, []);
 
     const handleActivateAccount = useCallback(async (email: string) => {
+        const loadingToast = toast.loading('Đang gửi mã OTP...');
         try {
             await sendOtp({email});
+            await new Promise(resolve => setTimeout(resolve, 500)); // Đợi animation loading
             navigate('/auth/verify-otp', {state: {email}});
             toast.success('Mã OTP đã được gửi đến email của bạn');
         } catch (error) {
@@ -64,6 +77,8 @@ const LoginPage: React.FC = () => {
                 }
                 toast.error(errorMessage);
             }
+        } finally {
+            toast.dismiss(loadingToast);
         }
     }, [sendOtp, navigate, startCooldownTimer]);
 
@@ -73,6 +88,8 @@ const LoginPage: React.FC = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
         }));
+        // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
+        setErrors(prev => ({...prev, [name]: ''}));
     }, []);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -96,6 +113,9 @@ const LoginPage: React.FC = () => {
                 password: formData.password,
             });
 
+            // Đợi animation loading hoàn thành
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             if (success) {
                 const token = sessionStorage.getItem('accessToken');
 
@@ -112,6 +132,13 @@ const LoginPage: React.FC = () => {
                         return;
                     }
 
+                    if (formData.rememberMe) {
+                        sessionStorage.setItem('rememberMe', 'true');
+                    }
+
+                    toast.success('Đăng nhập thành công!');
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Đợi toast hiển thị
+
                     if (roles.includes('ROLE_CUSTOMER')) {
                         window.location.href = 'http://localhost:3001/';
                     } else if (!roles.includes('ROLE_CUSTOMER')) {
@@ -119,12 +146,6 @@ const LoginPage: React.FC = () => {
                     } else {
                         navigate('/unauthorized');
                     }
-
-                    if (formData.rememberMe) {
-                        sessionStorage.setItem('rememberMe', 'true');
-                    }
-
-                    toast.success('Đăng nhập thành công!');
                 }
             } else {
                 if (error?.includes('incorrect password')) {
@@ -137,7 +158,8 @@ const LoginPage: React.FC = () => {
                     toast.error(error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
                 }
             }
-        } catch {
+        } catch (error) {
+            console.error('Login error:', error);
             toast.error('Đăng nhập thất bại. Vui lòng thử lại sau.');
         } finally {
             toast.dismiss(loadingToast);
