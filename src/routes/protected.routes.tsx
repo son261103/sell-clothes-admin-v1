@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { initializeSession } from '../config/apiConfig';
@@ -16,9 +16,6 @@ interface ProtectedRouteProps {
     forbiddenRoles?: string[];
 }
 
-const authStateCache = new Map<string, { isValid: boolean; timestamp: number }>();
-const CACHE_DURATION = 5000; // 5 seconds
-
 export const ProtectedRoute = ({
                                    children,
                                    requiredRoles = [],
@@ -27,10 +24,8 @@ export const ProtectedRoute = ({
                                }: ProtectedRouteProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [authState, setAuthState] = useState<{
-        isAuthorized: boolean | null;
-        isLoading: boolean;
-    }>({ isAuthorized: null, isLoading: true });
+    const [isAuthorized, setIsAuthorized] = React.useState<boolean | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
 
     const checkPermissions = useCallback((decoded: DecodedToken): boolean => {
         const userRoles = decoded.roles || [];
@@ -52,24 +47,6 @@ export const ProtectedRoute = ({
         let mounted = true;
 
         const checkAuthorization = async () => {
-            const cacheKey = `${location.pathname}-${JSON.stringify({
-                requiredRoles,
-                requiredPermissions,
-                forbiddenRoles
-            })}`;
-
-            // Check cache
-            const cachedAuth = authStateCache.get(cacheKey);
-            if (cachedAuth && Date.now() - cachedAuth.timestamp < CACHE_DURATION) {
-                if (mounted) {
-                    setAuthState({
-                        isAuthorized: cachedAuth.isValid,
-                        isLoading: false
-                    });
-                }
-                return;
-            }
-
             try {
                 const isSessionValid = await initializeSession();
 
@@ -93,16 +70,9 @@ export const ProtectedRoute = ({
                 const decoded = jwtDecode<DecodedToken>(token);
                 const hasPermission = checkPermissions(decoded);
 
-                // Cache the result
-                authStateCache.set(cacheKey, {
-                    isValid: hasPermission,
-                    timestamp: Date.now()
-                });
-
                 if (!hasPermission) {
                     if (mounted) {
-                        navigate(
-                            decoded.status === 'BANNED' ?
+                        navigate(decoded.status === 'BANNED' ?
                                 '/account-banned' : '/forbidden',
                             { replace: true }
                         );
@@ -111,14 +81,15 @@ export const ProtectedRoute = ({
                 }
 
                 if (mounted) {
-                    setAuthState({
-                        isAuthorized: true,
-                        isLoading: false
-                    });
+                    setIsAuthorized(true);
                 }
             } catch {
                 if (mounted) {
                     navigate('/auth/login', { replace: true });
+                }
+            } finally {
+                if (mounted) {
+                    setIsLoading(false);
                 }
             }
         };
@@ -130,6 +101,6 @@ export const ProtectedRoute = ({
         };
     }, [navigate, location, checkPermissions]);
 
-    if (authState.isLoading) return null;
-    return authState.isAuthorized ? <>{children}</> : null;
+    if (isLoading) return null;
+    return isAuthorized ? <>{children}</> : null;
 };

@@ -39,8 +39,7 @@ interface UserInfo {
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
 let lastCheckTime = 0;
-const CHECK_INTERVAL = 1000;
-const TOKEN_EXPIRY_BUFFER = 60; // 60 seconds buffer before actual expiry
+const CHECK_INTERVAL = 1000; // 1 giây
 
 const apiConfig = axios.create({
     baseURL: `${API_CONFIG.BASE_URL}${API_CONFIG.API_VERSION}`,
@@ -49,28 +48,10 @@ const apiConfig = axios.create({
     withCredentials: true,
 });
 
-// Cache mechanism for token validation results
-const tokenValidationCache = new Map<string, { isValid: boolean; timestamp: number }>();
-const CACHE_DURATION = 5000; // 5 seconds
-
 export const isTokenExpired = (token: string): boolean => {
     try {
-        // Check cache first
-        const cachedResult = tokenValidationCache.get(token);
-        if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_DURATION) {
-            return !cachedResult.isValid;
-        }
-
         const decoded = jwtDecode<DecodedToken>(token);
-        const isExpired = (decoded.exp - TOKEN_EXPIRY_BUFFER) < Date.now() / 1000;
-
-        // Cache the result
-        tokenValidationCache.set(token, {
-            isValid: !isExpired,
-            timestamp: Date.now()
-        });
-
-        return isExpired;
+        return (decoded.exp - 30) < Date.now() / 1000;
     } catch {
         return true;
     }
@@ -96,8 +77,6 @@ export const handleLogout = () => {
     sessionStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberMe');
-    tokenValidationCache.clear();
-
     if (window.location.pathname !== '/auth/login') {
         window.location.href = '/auth/login';
     }
@@ -151,7 +130,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         }
 
         onRefreshed(newAccessToken);
-        tokenValidationCache.clear(); // Clear cache on refresh
         return newAccessToken;
 
     } catch (err) {
@@ -165,51 +143,35 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     }
 };
 
-// Pre-initialize session state
-let cachedSessionPromise: Promise<boolean> | null = null;
-
 export const initializeSession = async (): Promise<boolean> => {
-    if (cachedSessionPromise) {
-        return cachedSessionPromise;
-    }
-
     if (window.location.pathname === '/auth/login') return true;
 
-    cachedSessionPromise = (async () => {
-        try {
-            const currentAccessToken = sessionStorage.getItem('accessToken');
-            if (!currentAccessToken || isTokenExpired(currentAccessToken)) {
-                try {
-                    const newAccessToken = await refreshAccessToken();
-                    return !!newAccessToken;
-                } catch {
-                    return false;
-                }
+    try {
+        const currentAccessToken = sessionStorage.getItem('accessToken');
+        if (!currentAccessToken || isTokenExpired(currentAccessToken)) {
+            try {
+                const newAccessToken = await refreshAccessToken();
+                return !!newAccessToken;
+            } catch {
+                return false;
             }
-
-            const userInfo = getUserFromToken(currentAccessToken);
-            if (userInfo) {
-                localStorage.setItem('user', JSON.stringify(userInfo));
-                return true;
-            }
-            return false;
-
-        } catch {
-            return false;
-        } finally {
-            // Clear the cached promise after a delay
-            setTimeout(() => {
-                cachedSessionPromise = null;
-            }, CHECK_INTERVAL);
         }
-    })();
 
-    return cachedSessionPromise;
+        const userInfo = getUserFromToken(currentAccessToken);
+        if (userInfo) {
+            localStorage.setItem('user', JSON.stringify(userInfo));
+            return true;
+        }
+        return false;
+
+    } catch {
+        return false;
+    }
 };
 
-// Optimized focus handler
 let focusTimeout: number;
-const focusHandler = () => {
+window.removeEventListener('focus', () => {});
+window.addEventListener('focus', () => {
     window.clearTimeout(focusTimeout);
     focusTimeout = window.setTimeout(() => {
         const currentToken = sessionStorage.getItem('accessToken');
@@ -217,12 +179,8 @@ const focusHandler = () => {
             initializeSession();
         }
     }, 1000);
-};
+});
 
-window.removeEventListener('focus', focusHandler);
-window.addEventListener('focus', focusHandler);
-
-// Request interceptor
 apiConfig.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
         const isAuthEndpoint = config.url?.includes('/auth/login') ||
@@ -249,14 +207,12 @@ apiConfig.interceptors.request.use(
     (err) => Promise.reject(err)
 );
 
-// Response interceptor
 apiConfig.interceptors.response.use(
     (response) => {
         if (response.config.url?.includes('/auth/login') &&
             response.data?.data?.accessToken) {
             const { accessToken } = response.data.data;
             sessionStorage.setItem('accessToken', accessToken);
-            tokenValidationCache.clear();
 
             const userInfo = getUserFromToken(accessToken);
             if (userInfo) {
