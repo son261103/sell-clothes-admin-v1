@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/authHooks';
 import { jwtDecode } from 'jwt-decode';
+import { initializeSession } from '../config/apiConfig';
 
 interface DecodedToken {
     roles: string[];
@@ -16,68 +16,120 @@ interface ProtectedRouteProps {
     forbiddenRoles?: string[];
 }
 
+const authStateCache = new Map<string, { isValid: boolean; timestamp: number }>();
+const CACHE_DURATION = 5000; // 5 seconds
+
 export const ProtectedRoute = ({
                                    children,
                                    requiredRoles = [],
                                    requiredPermissions = [],
                                    forbiddenRoles = []
                                }: ProtectedRouteProps) => {
-    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isAuthorized, setIsAuthorized] = React.useState<boolean | null>(null);
+    const [authState, setAuthState] = useState<{
+        isAuthorized: boolean | null;
+        isLoading: boolean;
+    }>({ isAuthorized: null, isLoading: true });
+
+    const checkPermissions = useCallback((decoded: DecodedToken): boolean => {
+        const userRoles = decoded.roles || [];
+        const userPermissions = decoded.permissions || [];
+
+        return !(
+            decoded.status === 'BANNED' ||
+            (forbiddenRoles.length > 0 &&
+                forbiddenRoles.some(role => userRoles.includes(role))) ||
+            (requiredRoles.length > 0 &&
+                !requiredRoles.some(role => userRoles.includes(role))) ||
+            (requiredPermissions.length > 0 &&
+                !requiredPermissions.some(permission =>
+                    userPermissions.includes(permission)))
+        );
+    }, [forbiddenRoles, requiredRoles, requiredPermissions]);
 
     useEffect(() => {
-        const checkAuthorization = () => {
-            const token = sessionStorage.getItem('accessToken');
+        let mounted = true;
 
-            if (!token) {
-                sessionStorage.setItem('redirectPath', location.pathname);
-                navigate('/auth/login', { replace: true });
+        const checkAuthorization = async () => {
+            const cacheKey = `${location.pathname}-${JSON.stringify({
+                requiredRoles,
+                requiredPermissions,
+                forbiddenRoles
+            })}`;
+
+            // Check cache
+            const cachedAuth = authStateCache.get(cacheKey);
+            if (cachedAuth && Date.now() - cachedAuth.timestamp < CACHE_DURATION) {
+                if (mounted) {
+                    setAuthState({
+                        isAuthorized: cachedAuth.isValid,
+                        isLoading: false
+                    });
+                }
                 return;
             }
 
             try {
+                const isSessionValid = await initializeSession();
+
+                if (!isSessionValid) {
+                    if (mounted) {
+                        sessionStorage.setItem('redirectPath', location.pathname);
+                        navigate('/auth/login', { replace: true });
+                    }
+                    return;
+                }
+
+                const token = sessionStorage.getItem('accessToken');
+                if (!token) {
+                    if (mounted) {
+                        sessionStorage.setItem('redirectPath', location.pathname);
+                        navigate('/auth/login', { replace: true });
+                    }
+                    return;
+                }
+
                 const decoded = jwtDecode<DecodedToken>(token);
-                const userRoles = decoded.roles || [];
-                const userPermissions = decoded.permissions || [];
+                const hasPermission = checkPermissions(decoded);
 
-                // Chỉ check BANNED status và role/permission
-                // Không xử lý refresh token ở đây nữa vì đã có trong apiConfig
-                if (decoded.status === 'BANNED') {
-                    navigate('/account-banned', { replace: true });
+                // Cache the result
+                authStateCache.set(cacheKey, {
+                    isValid: hasPermission,
+                    timestamp: Date.now()
+                });
+
+                if (!hasPermission) {
+                    if (mounted) {
+                        navigate(
+                            decoded.status === 'BANNED' ?
+                                '/account-banned' : '/forbidden',
+                            { replace: true }
+                        );
+                    }
                     return;
                 }
 
-                // Check forbidden roles first
-                if (forbiddenRoles.length > 0 && forbiddenRoles.some(role => userRoles.includes(role))) {
-                    navigate('/forbidden', { replace: true });
-                    return;
+                if (mounted) {
+                    setAuthState({
+                        isAuthorized: true,
+                        isLoading: false
+                    });
                 }
-
-                // Check required roles and permissions
-                const hasRequiredRole = requiredRoles.length === 0 ||
-                    requiredRoles.some(role => userRoles.includes(role));
-                const hasRequiredPermission = requiredPermissions.length === 0 ||
-                    requiredPermissions.some(permission => userPermissions.includes(permission));
-
-                if (!hasRequiredRole || !hasRequiredPermission) {
-                    navigate('/forbidden', { replace: true });
-                    return;
+            } catch {
+                if (mounted) {
+                    navigate('/auth/login', { replace: true });
                 }
-
-                setIsAuthorized(true);
-            } catch (error) {
-                // Chỉ handle invalid token format
-                // Không xử lý remove token vì đã có trong apiConfig
-                console.error('Token validation error:', error);
-                navigate('/auth/login', { replace: true });
             }
         };
 
         checkAuthorization();
-    }, [isAuthenticated, requiredRoles, requiredPermissions, forbiddenRoles, navigate, location]);
 
-    if (isAuthorized === null) return null;
-    return isAuthorized ? <>{children}</> : null;
+        return () => {
+            mounted = false;
+        };
+    }, [navigate, location, checkPermissions]);
+
+    if (authState.isLoading) return null;
+    return authState.isAuthorized ? <>{children}</> : null;
 };
