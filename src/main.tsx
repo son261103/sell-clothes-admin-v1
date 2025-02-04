@@ -17,29 +17,39 @@ createRoot(document.getElementById('root')!).render(
                     <Toaster
                         position="top-right"
                         reverseOrder={false}
+                        gutter={8}
                         toastOptions={{
+                            className: '',
                             duration: 3000,
                             style: {
-                                background: '#333',
-                                color: '#fff',
+                                background: 'var(--background)',
+                                color: 'var(--foreground)',
+                                border: '1px solid var(--border)',
+                                padding: '12px',
+                                borderRadius: '0.75rem',
+                                fontSize: '0.875rem',
+                                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
                             },
                             success: {
                                 duration: 3000,
+                                className: '!bg-green-50 dark:!bg-green-950 !text-green-800 dark:!text-green-200 !border-green-200 dark:!border-green-900',
                                 iconTheme: {
-                                    primary: '#4CAF50',
-                                    secondary: '#fff',
+                                    primary: '#22c55e',
+                                    secondary: '#ffffff',
                                 },
                             },
                             error: {
                                 duration: 4000,
+                                className: '!bg-red-50 dark:!bg-red-950 !text-red-800 dark:!text-red-200 !border-red-200 dark:!border-red-900',
                                 iconTheme: {
-                                    primary: '#f44336',
-                                    secondary: '#fff',
+                                    primary: '#ef4444',
+                                    secondary: '#ffffff',
                                 },
                             },
                             loading: {
                                 duration: Infinity,
-                            }
+                                className: '!bg-gray-50 dark:!bg-gray-900 !text-gray-800 dark:!text-gray-200 !border-gray-200 dark:!border-gray-800',
+                            },
                         }}
                     />
                 </LoadingProvider>
