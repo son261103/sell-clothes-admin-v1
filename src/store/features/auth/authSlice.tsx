@@ -37,9 +37,17 @@ const initialState: AuthState = {
 
 export const login = createAsyncThunk(
     'auth/login',
-    async (credentials: LoginRequest) => {
-        const response = await AuthService.login(credentials);
-        return response.data;
+    async (credentials: LoginRequest, { rejectWithValue }) => {
+        try {
+            const response = await AuthService.login(credentials);
+
+            if (!response?.accessToken) {
+                return rejectWithValue('Missing access token in response');
+            }
+            return response;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+        }
     }
 );
 
@@ -140,7 +148,7 @@ const authSlice = createSlice({
             .addCase(login.rejected, (state, action) => {
                 state.isLoading = false;
                 state.isAuthenticated = false;
-                state.error = action.error.message || 'Login failed';
+                state.error = action.payload as string || 'Login failed';
             })
 
             // Register

@@ -1,6 +1,7 @@
 export interface LoginRequest {
     loginId: string;
     password: string;
+    rememberMe: boolean;
 }
 
 export interface RegisterRequest {
