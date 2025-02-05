@@ -1,16 +1,17 @@
-import React, {useState, useCallback} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {User, ArrowRight, Loader2} from 'lucide-react';
-import {useAuth, useOtp} from '../../hooks/authHooks';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth, useOtp, useAuthError } from '../../hooks/authHooks';
 import FormInput from "../../components/auth/FormInput";
-import {toast} from 'react-hot-toast';
-import {jwtDecode} from 'jwt-decode';
-import {validateForm} from '../../utils/auth/loginUtils';
+import { toast } from 'react-hot-toast';
+import { jwtDecode } from 'jwt-decode';
+import { validateForm } from '../../utils/auth/loginUtils';
 
 interface DecodedToken {
     roles: string[];
     status: string;
     email: string;
+    permissions?: string[];
 }
 
 interface LoginFormData {
@@ -26,8 +27,11 @@ interface FormErrors {
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    const {login, isLoading, error} = useAuth();
-    const {sendOtp} = useOtp();
+    const location = useLocation();
+    const { login, isAuthenticated, isLoading } = useAuth();
+    const { sendOtp } = useOtp();
+    const { error, clearError } = useAuthError();
+
     const [isResendCooldown, setIsResendCooldown] = useState(false);
     const [cooldownTime, setCooldownTime] = useState(0);
 
@@ -41,6 +45,31 @@ const LoginPage: React.FC = () => {
         loginId: '',
         password: '',
     });
+
+    // Clear any existing auth errors when component mounts
+    useEffect(() => {
+        clearError();
+        // Check for redirect parameters
+        const params = new URLSearchParams(location.search);
+        if (params.get('verified') === 'true') {
+            toast.success('Email đã được xác minh. Vui lòng đăng nhập.');
+        }
+    }, [clearError, location]);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            const token = sessionStorage.getItem('accessToken');
+            if (token) {
+                const decoded = jwtDecode<DecodedToken>(token);
+                if (decoded.roles.includes('ROLE_CUSTOMER')) {
+                    window.location.href = 'http://localhost:3001/';
+                } else {
+                    navigate('/admin/dashboard');
+                }
+            }
+        }
+    }, [isAuthenticated, navigate]);
 
     const startCooldownTimer = useCallback((seconds: number) => {
         setIsResendCooldown(true);
@@ -60,9 +89,9 @@ const LoginPage: React.FC = () => {
     const handleActivateAccount = useCallback(async (email: string) => {
         const loadingToast = toast.loading('Đang gửi mã OTP...');
         try {
-            await sendOtp({email});
-            await new Promise(resolve => setTimeout(resolve, 500)); // Đợi animation loading
-            navigate('/auth/verify-otp', {state: {email}});
+            await sendOtp({ email });
+            await new Promise(resolve => setTimeout(resolve, 500));
+            navigate('/auth/verify-otp', { state: { email } });
             toast.success('Mã OTP đã được gửi đến email của bạn');
         } catch (error) {
             if (error instanceof Error) {
@@ -83,20 +112,23 @@ const LoginPage: React.FC = () => {
     }, [sendOtp, navigate, startCooldownTimer]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value, type, checked} = e.target;
-        setFormData((prev) => ({
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
         }));
-        // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
-        setErrors(prev => ({...prev, [name]: ''}));
-    }, []);
+        // Clear error message when user starts typing
+        setErrors(prev => ({ ...prev, [name]: '' }));
+        // Clear any auth errors
+        clearError();
+    }, [clearError]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('1. Starting login process...');
 
-        const {loginIdError, passwordError} = validateForm(formData.loginId, formData.password);
-
+        // Validate form
+        const { loginIdError, passwordError } = validateForm(formData.loginId, formData.password);
         if (loginIdError || passwordError) {
             setErrors({
                 loginId: loginIdError,
@@ -108,63 +140,58 @@ const LoginPage: React.FC = () => {
         const loadingToast = toast.loading('Đang đăng nhập...');
 
         try {
-            const success = await login({
+            // Call login from useAuth
+            const loginResult = await login({
                 loginId: formData.loginId,
                 password: formData.password,
+                rememberMe: formData.rememberMe
             });
 
-            // Đợi animation loading hoàn thành
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            if (success) {
-                const token = sessionStorage.getItem('accessToken');
-
-                if (token) {
-                    const decoded = jwtDecode<DecodedToken>(token);
-                    const {roles, status, email} = decoded;
-
-                    if (status === 'PENDING') {
-                        toast.success('Tài khoản chưa được kích hoạt');
-                        if (window.confirm('Bạn có muốn kích hoạt tài khoản ngay bây giờ?')) {
-                            await handleActivateAccount(email);
-                            return;
-                        }
-                        return;
-                    }
-
-                    if (formData.rememberMe) {
-                        sessionStorage.setItem('rememberMe', 'true');
-                    }
-
-                    toast.success('Đăng nhập thành công!');
-                    await new Promise(resolve => setTimeout(resolve, 500)); // Đợi toast hiển thị
-
-                    if (roles.includes('ROLE_CUSTOMER')) {
-                        window.location.href = 'http://localhost:3001/';
-                    } else if (!roles.includes('ROLE_CUSTOMER')) {
-                        navigate('/admin/dashboard');
-                    } else {
-                        navigate('/unauthorized');
-                    }
-                }
-            } else {
-                if (error?.includes('incorrect password')) {
-                    toast.error('Mật khẩu không chính xác');
-                    setErrors(prev => ({...prev, password: 'Mật khẩu không chính xác'}));
-                } else if (error?.includes('not found')) {
-                    toast.error('Tài khoản không tồn tại');
-                    setErrors(prev => ({...prev, loginId: 'Tài khoản không tồn tại'}));
-                } else {
-                    toast.error(error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
-                }
+            // Check if login was successful by checking the return value
+            if (!loginResult) {
+                toast.error('Đăng nhập thất bại');
+                return;
             }
+
+            const token = sessionStorage.getItem('accessToken');
+
+            if (!token) {
+                toast.error('Không tìm thấy token sau khi đăng nhập');
+                return;
+            }
+
+            const decoded = jwtDecode<DecodedToken>(token);
+            const { roles, status, email } = decoded;
+
+            if (status === 'PENDING') {
+                toast.success('Tài khoản chưa được kích hoạt');
+                if (window.confirm('Bạn có muốn kích hoạt tài khoản ngay bây giờ?')) {
+                    await handleActivateAccount(email);
+                    return;
+                }
+                return;
+            }
+
+            toast.success('Đăng nhập thành công!');
+
+            // Redirect based on role
+            if (roles.includes('ROLE_CUSTOMER')) {
+                window.location.href = 'http://localhost:3001/';
+            } else {
+                navigate('/admin/dashboard');
+            }
+
         } catch (error) {
             console.error('Login error:', error);
-            toast.error('Đăng nhập thất bại. Vui lòng thử lại sau.');
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error('Đã xảy ra lỗi không mong muốn');
+            }
         } finally {
             toast.dismiss(loadingToast);
         }
-    }, [formData, login, navigate, error, handleActivateAccount]);
+    }, [formData, login, navigate, handleActivateAccount]);
 
     const handleSocialLogin = useCallback((provider: 'Google' | 'Facebook') => {
         toast.error(`Đăng nhập bằng ${provider} chưa được hỗ trợ`);
@@ -190,7 +217,7 @@ const LoginPage: React.FC = () => {
                         value={formData.loginId}
                         onChange={handleInputChange}
                         placeholder="Email hoặc tên đăng nhập của bạn"
-                        icon={<User className="h-5 w-5"/>}
+                        icon={<User className="h-5 w-5" />}
                         required
                         error={errors.loginId}
                     />
@@ -233,11 +260,11 @@ const LoginPage: React.FC = () => {
                         className="btn btn-primary w-full gap-2"
                     >
                         {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin"/>
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                             <>
                                 Đăng nhập
-                                <ArrowRight className="h-5 w-5"/>
+                                <ArrowRight className="h-5 w-5" />
                             </>
                         )}
                     </button>
@@ -245,6 +272,12 @@ const LoginPage: React.FC = () => {
                     {isResendCooldown && (
                         <p className="text-sm text-center text-gray-500">
                             Vui lòng đợi {cooldownTime} giây trước khi thử lại
+                        </p>
+                    )}
+
+                    {error && (
+                        <p className="text-sm text-center text-red-500">
+                            {error}
                         </p>
                     )}
                 </form>
