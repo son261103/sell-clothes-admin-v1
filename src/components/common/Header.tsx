@@ -52,7 +52,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
                                          text-primary dark:text-textLight
                                          focus:outline-none focus:ring-2 focus:ring-primary"
                             />
-                            <Search className="absolute right-3 top-2.5 w-5 h-5 text-secondary/50 dark:text-textLight/50" />
+                            <Search className="absolute right-3 top-2.5 w-5 h-5 text-primary dark:text-primary" />
                         </div>
                     </div>
 
@@ -64,7 +64,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
                             aria-label="Search"
                             onClick={() => setIsSearchOpen(!isSearchOpen)}
                         >
-                            <Search className="w-5 h-5 text-secondary dark:text-textLight" />
+                            <Search className="w-5 h-5 text-primary dark:text-primary" />
                         </button>
 
                         <DarkModeToggle />

@@ -2,17 +2,14 @@ import { RouteObject } from 'react-router-dom';
 import { authRoutes } from './auth.routes';
 import { adminRoutes, RouteObjectWithMeta } from './admin.routes';
 import { Navigate } from 'react-router-dom';
-import NotFound from "../pages/NotFound/NotFound.tsx";
+import NotFound from "../pages/NotFound/NotFound";
 import { ProtectedRoute } from './protected.routes';
 
-// Create protected admin routes by wrapping each route element with ProtectedRoute
+// Create protected admin routes
 const protectedAdminRoutes: RouteObjectWithMeta = {
     path: '/admin',
     element: (
-        <ProtectedRoute
-            requiredPermissions={adminRoutes.meta?.requiredPermissions}
-            forbiddenRoles={['ROLE_CUSTOMER']}
-        >
+        <ProtectedRoute forbiddenRoles={['ROLE_CUSTOMER']}>
             {adminRoutes.element}
         </ProtectedRoute>
     ),
@@ -33,7 +30,7 @@ const protectedAdminRoutes: RouteObjectWithMeta = {
 const publicRoutes: RouteObject[] = [
     {
         path: '/',
-        element: <Navigate to="/auth/login" replace />
+        element: <Navigate to="/admin/dashboard" replace />
     },
     authRoutes,
 ];
@@ -44,12 +41,12 @@ const notFoundRoute: RouteObject = {
     element: <NotFound />,
 };
 
-// Combine all routes into a single array
+// Combine all routes
 export const routes: RouteObject[] = [
     ...publicRoutes,
     protectedAdminRoutes as RouteObject,
     notFoundRoute,
 ];
 
-// Export individual route groups for modularity if needed
+// Export individual route groups
 export { publicRoutes, authRoutes, adminRoutes };

@@ -1,8 +1,10 @@
-import { RouteObject } from 'react-router-dom';
-import AuthLayout from "../layouts/AuthLayout.tsx";
-import LoginPage from "../pages/Auth/LoginPage.tsx";
-import RegisterPage from "../pages/Auth/RegisterPage.tsx";
-import ForgotPasswordPage from "../pages/Auth/ForgotPasswordPage.tsx";
+import { RouteObject } from "react-router-dom";
+import AuthLayout from "../layouts/AuthLayout";
+import LoginPage from "../pages/Auth/LoginPage";
+import RegisterPage from "../pages/Auth/RegisterPage";
+import ForgotPasswordPage from "../pages/Auth/ForgotPasswordPage";
+import VerifyOTPPage from "../pages/Auth/VerifyOTPPage";
+import AuthGuard from "./authguard.routes.tsx";
 
 export const authRoutes: RouteObject = {
     path: '/auth',
@@ -10,15 +12,35 @@ export const authRoutes: RouteObject = {
     children: [
         {
             path: 'login',
-            element: <LoginPage />
+            element: (
+                <AuthGuard>
+                    <LoginPage />
+                </AuthGuard>
+            ),
         },
         {
             path: 'register',
-            element: <RegisterPage />
+            element: (
+                <AuthGuard>
+                    <RegisterPage />
+                </AuthGuard>
+            ),
         },
         {
             path: 'forgot-password',
-            element: <ForgotPasswordPage />
-        }
-    ]
+            element: (
+                <AuthGuard>
+                    <ForgotPasswordPage />
+                </AuthGuard>
+            ),
+        },
+        {
+            path: 'verify-otp',
+            element: (
+                <AuthGuard>
+                    <VerifyOTPPage />
+                </AuthGuard>
+            ),
+        },
+    ],
 };

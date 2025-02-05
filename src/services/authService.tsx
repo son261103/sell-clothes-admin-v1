@@ -25,32 +25,39 @@ class AuthService {
         };
     }
 
-
-    async login(data: LoginRequest): Promise<ApiResponse<TokenResponse>> {
+    async login(data: LoginRequest): Promise<TokenResponse> {
         try {
-            const response = await apiConfig.post<ApiResponse<TokenResponse>>(
+            console.log('AuthService: Sending login request', { ...data, password: '[REDACTED]' });
+
+            const response = await apiConfig.post<TokenResponse>(
                 AUTH_ENDPOINTS.LOGIN,
                 data
             );
 
-            if (!response?.data) {
-                throw new Error('Invalid response from server');
+            console.log('AuthService: Received raw response:', {
+                status: response.status,
+                headers: response.headers,
+                data: response.data
+            });
+
+            if (!response?.data?.accessToken) {
+                throw new Error('Invalid response: Missing access token');
             }
 
-            const { accessToken, tokenType } = response.data;
-
-            if (accessToken) {
-                localStorage.setItem('accessToken', `${tokenType || 'Bearer'} ${accessToken}`);
-            }
-
+            console.log('AuthService: Parsed response data:', {
+                accessToken: '[EXISTS]',
+                tokenType: response.data.tokenType
+            });
 
             return response.data;
 
         } catch (err) {
+            console.error('AuthService: Error during login:', err);
             this.clearLocalStorage();
             throw AuthService.handleError(err);
         }
     }
+
     async register(data: RegisterRequest, otp?: string): Promise<ApiResponse<RegisterResponse>> {
         try {
             const response = await apiConfig.post<ApiResponse<RegisterResponse>>(
@@ -137,11 +144,9 @@ class AuthService {
             );
 
             if (response.data.data) {
-                const {accessToken, refreshToken} = response.data.data;
-                localStorage.setItem('accessToken', accessToken);
-                if (refreshToken) {
-                    localStorage.setItem('refreshToken', refreshToken);
-                }
+                const {accessToken} = response.data.data;
+                // Lưu token mới vào sessionStorage
+                sessionStorage.setItem('accessToken', accessToken);
             }
 
             return response.data;
@@ -151,17 +156,15 @@ class AuthService {
     }
 
     private clearLocalStorage(): void {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('accessToken');
+        localStorage.removeItem('rememberMe');
         localStorage.removeItem('user');
     }
 
     async logout(): Promise<ApiResponse<void>> {
         try {
-            const refreshToken = localStorage.getItem('refreshToken');
             const response = await apiConfig.post<ApiResponse<void>>(
-                AUTH_ENDPOINTS.LOGOUT,
-                {refreshToken}
+                AUTH_ENDPOINTS.LOGOUT
             );
 
             this.clearLocalStorage();

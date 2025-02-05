@@ -41,11 +41,28 @@ export const useAuth = () => {
     const permissions = useAppSelector(selectUserPermissions);
 
     const handleLogin = useCallback(
-        async (credentials: LoginRequest) => {
+        async (credentials: LoginRequest): Promise<boolean> => {
             try {
-                await dispatch(login(credentials)).unwrap();
+
+                const result = await dispatch(login(credentials)).unwrap();
+
+                if (!result?.accessToken) {
+                    return false;
+                }
+
+                const tokenWithType = `${result.tokenType || 'Bearer'} ${result.accessToken}`;
+
+                // Store tokens based on rememberMe
+                if (credentials.rememberMe) {
+                    sessionStorage.setItem('accessToken', tokenWithType);
+                } else {
+                    sessionStorage.setItem('accessToken', tokenWithType);
+                }
+
+                console.log('Hook: Login process completed successfully');
                 return true;
-            } catch {
+            } catch (error) {
+                console.error('Hook: Error during login process:', error);
                 return false;
             }
         },
@@ -128,6 +145,7 @@ export const useOtp = () => {
     const otpVerified = useAppSelector(selectOtpVerified);
     const otpSent = useAppSelector(selectOtpSent);
     const {isLoading, error} = useAppSelector(selectAuthStatus);
+
 
     const handleSendOtp = useCallback(
         async (data: SendOtpRequest) => {
