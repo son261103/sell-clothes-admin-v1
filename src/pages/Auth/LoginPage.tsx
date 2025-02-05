@@ -125,7 +125,6 @@ const LoginPage: React.FC = () => {
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('1. Starting login process...');
 
         // Validate form
         const { loginIdError, passwordError } = validateForm(formData.loginId, formData.password);

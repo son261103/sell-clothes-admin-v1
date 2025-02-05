@@ -59,7 +59,15 @@ export const useAuth = () => {
                     sessionStorage.setItem('accessToken', tokenWithType);
                 }
 
-                console.log('Hook: Login process completed successfully');
+                // if (credentials.rememberMe) {
+                //     sessionStorage.setItem('accessToken', tokenWithType);
+                // } else {
+                //     sessionStorage.setItem('accessToken', tokenWithType);
+                //     if (result.refreshToken) {
+                //         sessionStorage.setItem('refreshToken', result.refreshToken);
+                //     }
+                // }
+
                 return true;
             } catch (error) {
                 console.error('Hook: Error during login process:', error);
