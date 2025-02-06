@@ -59,7 +59,7 @@ const menuItems: MenuItem[] = [
         children: [
             {
                 title: 'User List',
-                path: '/admin/users',
+                path: '/admin/users/list',
                 icon: <Users className="w-4 h-4" />,
             },
             {

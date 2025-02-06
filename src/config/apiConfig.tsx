@@ -75,6 +75,7 @@ export const getUserFromToken = (token: string): UserInfo | null => {
 
 export const handleLogout = () => {
     sessionStorage.removeItem('accessToken');
+    sessionStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberMe');
     if (window.location.pathname !== '/auth/login') {
@@ -198,6 +199,8 @@ apiConfig.interceptors.request.use(
                 }
             }
 
+            // Clean token and add Bearer prefix
+            accessToken = accessToken.trim();
             config.headers.Authorization = `Bearer ${accessToken}`;
             return config;
         } catch (err) {

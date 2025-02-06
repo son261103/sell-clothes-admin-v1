@@ -12,9 +12,6 @@ interface HeaderProps {
 
 const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const handleLogout = () => {
-        console.log('Logging out...');
-    };
 
     return (
         <header
@@ -69,7 +66,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
 
                         <DarkModeToggle />
                         <NotificationButton />
-                        <ProfileDropdown onLogout={handleLogout} />
+                        <ProfileDropdown  />
                     </div>
                 </div>
 

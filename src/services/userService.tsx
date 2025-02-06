@@ -1,0 +1,247 @@
+import apiConfig from '../config/apiConfig';
+import { USER_ENDPOINTS } from '../constants/userConstant';
+import type {
+    UserResponse,
+    UserCreateRequest,
+    UserUpdateRequest,
+    UserStatusUpdateRequest,
+    UserCheckResponse,
+    UserLoginUpdateResponse,
+} from '../types';
+import { AxiosError } from 'axios';
+import { uploadSingleFile } from '../config/uploadConfig';
+import { ApiResponse, ErrorResponse } from '../types';
+
+class UserService {
+    private static createErrorResponse(err: unknown): ErrorResponse {
+        if (err instanceof AxiosError && err.response?.data) {
+            return {
+                success: false,
+                message: err.response.data.message || err.message,
+                errorCode: err.response.data.errorCode
+            };
+        }
+        return {
+            success: false,
+            message: err instanceof Error ? err.message : 'An unexpected error occurred',
+            errorCode: 'UNKNOWN_ERROR'
+        };
+    }
+
+    private static wrapResponse<T>(data: T): ApiResponse<T> {
+        return {
+            success: true,
+            data,
+            message: 'Operation successful'
+        };
+    }
+
+    async getAllUsers(): Promise<ApiResponse<UserResponse[]>> {
+        try {
+
+            const response = await apiConfig.get<UserResponse[]>(USER_ENDPOINTS.LIST);
+            // Wrap array response in ApiResponse format
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async getUserById(id: number): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.get<UserResponse>(USER_ENDPOINTS.VIEW(id));
+            if (!response.data) {
+                throw new Error('User not found');
+            }
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async getUserByUsername(username: string): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.get<UserResponse>(
+                USER_ENDPOINTS.GET_BY_USERNAME(username)
+            );
+            if (!response.data) {
+                throw new Error('User not found');
+            }
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async getUserByEmail(email: string): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.get<UserResponse>(
+                USER_ENDPOINTS.GET_BY_EMAIL(email)
+            );
+            if (!response.data) {
+                throw new Error('User not found');
+            }
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async createUser(
+        userData: UserCreateRequest,
+        avatarFile?: File,
+        onProgress?: (progress: number) => void
+    ): Promise<ApiResponse<UserResponse>> {
+        try {
+            let avatarUrl: string | undefined;
+
+            if (avatarFile) {
+                const uploadResponse = await uploadSingleFile(avatarFile, onProgress);
+                if (!uploadResponse.success) {
+                    throw new Error('Failed to upload avatar');
+                }
+                avatarUrl = uploadResponse.data.url;
+            }
+
+            const finalUserData: UserCreateRequest = {
+                ...userData,
+                avatar: avatarUrl
+            };
+
+            const formData = new FormData();
+            formData.append('user', JSON.stringify(finalUserData));
+            if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            }
+
+            const response = await apiConfig.post<UserResponse>(
+                USER_ENDPOINTS.CREATE,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+
+            if (!response.data) {
+                throw new Error('Failed to create user');
+            }
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async updateUser(
+        id: number,
+        userData: UserUpdateRequest,
+        avatarFile?: File,
+        onProgress?: (progress: number) => void
+    ): Promise<ApiResponse<UserResponse>> {
+        try {
+            let avatarUrl: string | undefined;
+
+            if (avatarFile) {
+                const uploadResponse = await uploadSingleFile(avatarFile, onProgress);
+                if (!uploadResponse.success) {
+                    throw new Error('Failed to upload avatar');
+                }
+                avatarUrl = uploadResponse.data.url;
+            }
+
+            const finalUserData: UserUpdateRequest = {
+                ...userData,
+                avatar: avatarUrl || userData.avatar
+            };
+
+            const formData = new FormData();
+            formData.append('user', JSON.stringify(finalUserData));
+            if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            }
+
+            const response = await apiConfig.put<UserResponse>(
+                USER_ENDPOINTS.EDIT(id),
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+
+            if (!response.data) {
+                throw new Error('Failed to update user');
+            }
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async deleteUser(id: number): Promise<ApiResponse<void>> {
+        try {
+            await apiConfig.delete(USER_ENDPOINTS.DELETE(id));
+            return UserService.wrapResponse(undefined);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async updateUserStatus(
+        id: number,
+        status: UserStatusUpdateRequest
+    ): Promise<ApiResponse<void>> {
+        try {
+            await apiConfig.put(
+                USER_ENDPOINTS.UPDATE_STATUS(id),
+                status
+            );
+            return UserService.wrapResponse(undefined);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async checkUsername(username: string): Promise<ApiResponse<UserCheckResponse>> {
+        try {
+            const response = await apiConfig.get<UserCheckResponse>(
+                USER_ENDPOINTS.CHECK_USERNAME,
+                {
+                    params: { username }
+                }
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async checkEmail(email: string): Promise<ApiResponse<UserCheckResponse>> {
+        try {
+            const response = await apiConfig.get<UserCheckResponse>(
+                USER_ENDPOINTS.CHECK_EMAIL,
+                {
+                    params: { email }
+                }
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async updateLastLogin(userId: number): Promise<ApiResponse<UserLoginUpdateResponse>> {
+        try {
+            const response = await apiConfig.put<UserLoginUpdateResponse>(
+                USER_ENDPOINTS.UPDATE_LAST_LOGIN(userId)
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+}
+
+export default new UserService();

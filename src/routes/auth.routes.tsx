@@ -4,7 +4,7 @@ import LoginPage from "../pages/Auth/LoginPage";
 import RegisterPage from "../pages/Auth/RegisterPage";
 import ForgotPasswordPage from "../pages/Auth/ForgotPasswordPage";
 import VerifyOTPPage from "../pages/Auth/VerifyOTPPage";
-import AuthGuard from "./authguard.routes.tsx";
+import AuthGuard from "./guards/authguard.routes.tsx";
 
 export const authRoutes: RouteObject = {
     path: '/auth',

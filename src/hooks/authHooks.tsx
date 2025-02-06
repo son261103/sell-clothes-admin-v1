@@ -50,23 +50,23 @@ export const useAuth = () => {
                     return false;
                 }
 
-                const tokenWithType = `${result.tokenType || 'Bearer'} ${result.accessToken}`;
+                // const tokenWithType = `${result.tokenType || 'Bearer'} ${result.accessToken}`;
 
                 // Store tokens based on rememberMe
-                if (credentials.rememberMe) {
-                    sessionStorage.setItem('accessToken', tokenWithType);
-                } else {
-                    sessionStorage.setItem('accessToken', tokenWithType);
-                }
-
                 // if (credentials.rememberMe) {
                 //     sessionStorage.setItem('accessToken', tokenWithType);
                 // } else {
                 //     sessionStorage.setItem('accessToken', tokenWithType);
-                //     if (result.refreshToken) {
-                //         sessionStorage.setItem('refreshToken', result.refreshToken);
-                //     }
                 // }
+
+                if (credentials.rememberMe) {
+                    sessionStorage.setItem('accessToken', result.accessToken.trim());
+                } else {
+                    sessionStorage.setItem('accessToken', result.accessToken.trim());
+                    if (result.refreshToken) {
+                        sessionStorage.setItem('refreshToken', result.refreshToken.trim());
+                    }
+                }
 
                 return true;
             } catch (error) {
@@ -77,10 +77,36 @@ export const useAuth = () => {
         [dispatch]
     );
 
+    // const handleLogin = useCallback(
+    //     async (credentials: LoginRequest): Promise<boolean> => {
+    //         try {
+    //             const result = await dispatch(login(credentials)).unwrap();
+    //
+    //             if (!result?.accessToken) {
+    //                 return false;
+    //             }
+    //
+    //             // Store only the access token without Bearer prefix
+    //             sessionStorage.setItem('accessToken', result.accessToken.trim());
+    //
+    //             return true;
+    //         } catch (error) {
+    //             console.error('Hook: Error during login process:', error);
+    //             return false;
+    //         }
+    //     },
+    //     [dispatch]
+    // );
+
     const handleLogout = useCallback(
         async () => {
             try {
                 await dispatch(logout()).unwrap();
+                // Xóa tất cả tokens và user data
+                sessionStorage.removeItem('accessToken');
+                sessionStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                localStorage.removeItem('rememberMe');
                 return true;
             } catch {
                 return false;
