@@ -43,7 +43,9 @@ const DashboardPage = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex justify-between items-center p-1 border-b">
+            <div className="flex justify-between items-center p-1 border-b"
+                 data-aos="fade-down"
+            >
                 <div>
                     <h1 className="text-xl font-semibold text-textDark dark:text-textLight">
                         Dashboard

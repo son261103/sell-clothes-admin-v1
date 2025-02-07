@@ -1,16 +1,16 @@
 import {useEffect, useState, useMemo} from 'react';
 import {
-    Download, UserPlus, Users, Search, X, RefreshCw,
-    UserCheck, UserX, Clock, Filter, ArrowUpRight, ArrowDownRight
+    Download, UserPlus, Search, X, RefreshCw,
+    Filter,
 } from 'lucide-react';
 import UserDataTable from '../../components/user/UserDataTable';
-import {useUsers, useUserStatusFilters, useUserFilters} from '../../hooks/userHooks';
+import {useUsers, useUserFilters} from '../../hooks/userHooks';
 import type {UserResponse, UserStatus} from '../../types';
 import {Link} from "react-router-dom";
 
 const UserListPage = () => {
     const {users, isLoading, fetchAllUsers, deleteUser, updateUserStatus} = useUsers();
-    const {activeUsers, inactiveUsers, pendingUsers, blockedUsers} = useUserStatusFilters();
+    const [isMobileView, setIsMobileView] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [quickSearch, setQuickSearch] = useState('');
@@ -19,50 +19,38 @@ const UserListPage = () => {
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    // Mobile view detection
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobileView(window.innerWidth < 768);
+        };
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Close filter menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const filterMenu = document.getElementById('filter-menu');
+            const filterButton = document.getElementById('filter-button');
+            if (filterMenu && filterButton &&
+                !filterMenu.contains(event.target as Node) &&
+                !filterButton.contains(event.target as Node)) {
+                setIsFilterMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const {filteredUsers} = useUserFilters({
         status: selectedStatus || undefined,
         role: selectedRole || undefined,
         searchTerm: searchTerm || quickSearch || undefined
     });
-
-    const stats = [
-        {
-            title: 'Tổng người dùng',
-            value: users.length,
-            trend: '+12%',
-            isIncrease: true,
-            icon: <Users className="w-5 h-5 sm:w-6 sm:h-6"/>,
-            color: 'text-blue-500',
-            bgColor: 'bg-blue-100 dark:bg-blue-900/20'
-        },
-        {
-            title: 'Đang hoạt động',
-            value: activeUsers.length,
-            trend: '+8%',
-            isIncrease: true,
-            icon: <UserCheck className="w-5 h-5 sm:w-6 sm:h-6"/>,
-            color: 'text-green-500',
-            bgColor: 'bg-green-100 dark:bg-green-900/20'
-        },
-        {
-            title: 'Bị khóa/Cấm',
-            value: inactiveUsers.length + blockedUsers.length,
-            trend: '-2%',
-            isIncrease: false,
-            icon: <UserX className="w-5 h-5 sm:w-6 sm:h-6"/>,
-            color: 'text-red-500',
-            bgColor: 'bg-red-100 dark:bg-red-900/20'
-        },
-        {
-            title: 'Chờ duyệt',
-            value: pendingUsers.length,
-            trend: '+5%',
-            isIncrease: true,
-            icon: <Clock className="w-5 h-5 sm:w-6 sm:h-6"/>,
-            color: 'text-orange-500',
-            bgColor: 'bg-orange-100 dark:bg-orange-900/20'
-        }
-    ];
 
     const availableRoles = useMemo(() => {
         const roleSet = new Set<string>();
@@ -125,165 +113,152 @@ const UserListPage = () => {
         setIsFilterMenuOpen(false);
     };
 
-    const renderStats = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-                <div
-                    key={index}
-                    className="bg-white dark:bg-secondary rounded-xl shadow-sm p-6"
-                    data-aos="fade-up"
-                    data-aos-delay={index * 100}
-                >
-                    <div className="flex justify-between items-start">
-                        <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                            <span className={stat.color}>{stat.icon}</span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                            <span className={`text-xs ${stat.isIncrease ? 'text-green-500' : 'text-red-500'}`}>
-                                {stat.trend}
-                            </span>
-                            {stat.isIncrease ? (
-                                <ArrowUpRight className="w-3.5 h-3.5 text-green-500"/>
-                            ) : (
-                                <ArrowDownRight className="w-3.5 h-3.5 text-red-500"/>
-                            )}
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        <h3 className="text-sm text-secondary dark:text-highlight">
-                            {stat.title}
-                        </h3>
-                        <p className="text-2xl font-bold text-textDark dark:text-textLight mt-1">
-                            {stat.value}
-                        </p>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-
     const renderSearchAndFilters = () => (
-        <div className="bg-white dark:bg-secondary rounded-xl shadow-sm" data-aos="fade-up" data-aos-delay="400">
-            <div className="p-4 border-gray-100 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <div className="relative flex-1 w-full">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="w-4 h-4 text-secondary dark:text-highlight"/>
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm nhanh..."
-                            className="w-full h-10 px-10 pr-10 rounded-lg border border-primary dark:border-secondary bg-lightBackground dark:bg-darkBackground text-textDark dark:text-textLight focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all text-sm"
-                            value={quickSearch}
-                            onChange={(e) => setQuickSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleQuickSearch()}
-                        />
-                        {quickSearch && (
-                            <button
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                                onClick={() => setQuickSearch('')}
-                            >
-                                <X className="w-4 h-4 text-secondary dark:text-highlight hover:text-accent dark:hover:text-textLight transition-colors"/>
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                        <button
-                            onClick={handleRefresh}
-                            className={`h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5 ${
-                                isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                            disabled={isRefreshing}
-                        >
-                            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                            Làm mới
-                        </button>
-
-                        <div className="relative">
-                            <button
-                                className={`h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5 ${
-                                    isFilterMenuOpen ? 'bg-gray-50 dark:bg-gray-700 border-primary dark:border-primary' : ''
-                                }`}
-                                onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                            >
-                                <Filter className="w-3.5 h-3.5"/>
-                                <span>Bộ lọc</span>
-                                {(selectedStatus || selectedRole) && (
-                                    <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
-                                        {[selectedStatus, selectedRole].filter(Boolean).length}
-                                    </span>
-                                )}
-                            </button>
-                            {isFilterMenuOpen && (
-                                <div
-                                    className="absolute right-0 mt-2 w-72 p-4 bg-white dark:bg-secondary rounded-xl shadow-lg z-50">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label
-                                                className="text-sm font-medium mb-1 block text-textDark dark:text-textLight">
-                                                Trạng thái
-                                            </label>
-                                            <select
-                                                className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
-                                                value={selectedStatus}
-                                                onChange={(e) => setSelectedStatus(e.target.value as UserStatus | '')}
-                                            >
-                                                <option value="">Tất cả trạng thái</option>
-                                                <option value="ACTIVE">Đang hoạt động</option>
-                                                <option value="LOCKED">Đã khóa</option>
-                                                <option value="BANNER">Đã cấm</option>
-                                                <option value="PENDING">Chờ duyệt</option>
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label
-                                                className="text-sm font-medium mb-1 block text-textDark dark:text-textLight">
-                                                Vai trò
-                                            </label>
-                                            <select
-                                                className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
-                                                value={selectedRole}
-                                                onChange={(e) => setSelectedRole(e.target.value)}
-                                            >
-                                                <option value="">Tất cả vai trò</option>
-                                                {availableRoles.map(role => (
-                                                    <option key={role} value={role}>
-                                                        {role}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <button
-                                            className="w-full h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700"
-                                            onClick={clearFilters}
-                                        >
-                                            Xóa bộ lọc
-                                        </button>
-                                    </div>
-                                </div>
+        <div className="relative">
+            <div className="bg-white dark:bg-secondary rounded-xl shadow-sm" data-aos="fade-up" data-aos-delay="400">
+                <div className="p-4">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                        {/* Search Input - Full width on mobile */}
+                        <div className="relative flex-1 w-full">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="w-4 h-4 text-secondary dark:text-highlight"/>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm nhanh..."
+                                className="w-full h-10 px-10 pr-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-textDark dark:text-textLight focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
+                                value={quickSearch}
+                                onChange={(e) => setQuickSearch(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleQuickSearch()}
+                            />
+                            {quickSearch && (
+                                <button
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                    onClick={() => setQuickSearch('')}
+                                >
+                                    <X className="w-4 h-4 text-secondary dark:text-highlight hover:text-accent dark:hover:text-textLight transition-colors"/>
+                                </button>
                             )}
                         </div>
 
-                        <button
-                            className="h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5">
-                            <Download className="h-3.5 w-3.5"/>
-                            Xuất danh sách
-                        </button>
+                        {/* Action Buttons - Stack on mobile */}
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                            <button
+                                onClick={handleRefresh}
+                                className={`h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5 ${
+                                    isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                                disabled={isRefreshing}
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`}/>
+                                <span className="hidden sm:inline">Làm mới</span>
+                            </button>
+
+                            {/* Filter Button */}
+                            <div className="relative">
+                                <button
+                                    id="filter-button"
+                                    className={`h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5 ${
+                                        isFilterMenuOpen ? 'bg-gray-50 dark:bg-gray-700 border-primary dark:border-primary' : ''
+                                    }`}
+                                    onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                                >
+                                    <Filter className="w-3.5 w-3.5"/>
+                                    <span className="hidden sm:inline">Bộ lọc</span>
+                                    {(selectedStatus || selectedRole) && (
+                                        <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+                                            {[selectedStatus, selectedRole].filter(Boolean).length}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+
+                            <button className="h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5">
+                                <Download className="h-3.5 w-3.5"/>
+                                <span className="hidden sm:inline">Xuất danh sách</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* Filter Menu and Overlay */}
+            {isFilterMenuOpen && (
+                <>
+                    {/* Overlay */}
+                    <div
+                        className="fixed inset-0 bg-black/20 dark:bg-black/40"
+                        style={{ zIndex: 40 }}
+                        onClick={() => setIsFilterMenuOpen(false)}
+                    />
+
+                    {/* Filter Menu */}
+                    <div
+                        id="filter-menu"
+                        className="fixed md:absolute left-4 right-4 md:left-auto md:right-0 md:w-72 mt-2 p-4 bg-white dark:bg-secondary rounded-xl shadow-lg"
+                        style={{
+                            zIndex: 50,
+                            maxHeight: 'calc(100vh - 200px)',
+                            overflowY: 'auto'
+                        }}
+                    >
+                        <div className="space-y-4">
+                            {/* Status Filter */}
+                            <div>
+                                <label className="text-sm font-medium mb-1 block text-textDark dark:text-textLight">
+                                    Trạng thái
+                                </label>
+                                <select
+                                    className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
+                                    value={selectedStatus}
+                                    onChange={(e) => setSelectedStatus(e.target.value as UserStatus | '')}
+                                >
+                                    <option value="">Tất cả trạng thái</option>
+                                    <option value="ACTIVE">Đang hoạt động</option>
+                                    <option value="LOCKED">Đã khóa</option>
+                                    <option value="BANNER">Đã cấm</option>
+                                    <option value="PENDING">Chờ duyệt</option>
+                                </select>
+                            </div>
+
+                            {/* Role Filter */}
+                            <div>
+                                <label className="text-sm font-medium mb-1 block text-textDark dark:text-textLight">
+                                    Vai trò
+                                </label>
+                                <select
+                                    className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
+                                    value={selectedRole}
+                                    onChange={(e) => setSelectedRole(e.target.value)}
+                                >
+                                    <option value="">Tất cả vai trò</option>
+                                    {availableRoles.map(role => (
+                                        <option key={role} value={role}>
+                                            {role}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Clear Filters Button */}
+                            <button
+                                className="w-full h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700"
+                                onClick={clearFilters}
+                            >
+                                Xóa bộ lọc
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
-            <div
-                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b"
-                data-aos="fade-down"
+            {/* Page Header - Mobile responsive */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 sm:p-1 border-b"
+                 data-aos="fade-down"
             >
                 <div>
                     <h1 className="text-xl font-semibold text-textDark dark:text-textLight">
@@ -293,38 +268,38 @@ const UserListPage = () => {
                         Quản lý và giám sát tài khoản người dùng
                     </p>
                 </div>
-                <div className="mt-4 sm:mt-0">
+                <div className="w-full sm:w-auto">
                     <Link
                         to="/user/create"
-                        className="inline-flex h-9 px-3 text-sm rounded-md bg-primary text-white hover:bg-primary/90 items-center gap-1.5"
+                        className="inline-flex w-full sm:w-auto justify-center h-9 px-3 text-sm rounded-md bg-primary text-white hover:bg-primary/90 items-center gap-1.5"
                     >
                         <UserPlus className="h-3.5 w-3.5"/>
-                        Thêm người dùng
+                        <span>Thêm người dùng</span>
                     </Link>
                 </div>
             </div>
-
-            {/* Stats Grid */}
-            {renderStats()}
 
             {/* Search and Filters */}
             {renderSearchAndFilters()}
 
             {/* User Table */}
-            <div
-                className="bg-white dark:bg-secondary rounded-xl shadow-sm overflow-hidden"
-                data-aos="fade-up"
-                data-aos-delay="500"
-            >
-                <UserDataTable
-                    users={filteredUsers}
-                    onDeleteUser={handleDeleteUser}
-                    onEditUser={handleEditUser}
-                    onStatusChange={handleStatusChange}
-                    isLoading={isLoading}
-                    onRefresh={handleRefresh}
-                    isRefreshing={isRefreshing}
-                />
+            <div className="relative" style={{ zIndex: 10 }}>
+                <div
+                    className="bg-white dark:bg-secondary rounded-xl shadow-sm overflow-hidden"
+                    data-aos="fade-up"
+                    data-aos-delay="500"
+                >
+                    <UserDataTable
+                        users={filteredUsers}
+                        onDeleteUser={handleDeleteUser}
+                        onEditUser={handleEditUser}
+                        onStatusChange={handleStatusChange}
+                        isLoading={isLoading}
+                        onRefresh={handleRefresh}
+                        isRefreshing={isRefreshing}
+                        isMobileView={isMobileView}
+                    />
+                </div>
             </div>
         </div>
     );
