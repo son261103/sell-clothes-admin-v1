@@ -6,6 +6,16 @@ export interface RoleResponse {
     description?: string;
 }
 
+export interface UserFilters {
+    search?: string;
+    status?: UserStatus;
+    role?: string;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortDirection?: 'asc' | 'desc';
+}
+
 export interface UserCreateRequest {
     username: string;
     email: string;

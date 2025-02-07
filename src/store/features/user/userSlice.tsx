@@ -4,11 +4,11 @@ import type {
     UserResponse,
     UserCreateRequest,
     UserUpdateRequest,
-    UserStatus, ErrorResponse
+    UserStatus, ErrorResponse, PageResponse, PageRequest, UserFilters
 } from '../../../types';
 
 interface UserState {
-    users: UserResponse[];
+    users: PageResponse<UserResponse>;
     currentUser: UserResponse | null;
     searchedUser: UserResponse | null;
     isLoading: boolean;
@@ -21,7 +21,16 @@ interface UserState {
 }
 
 const initialState: UserState = {
-    users: [],
+    users: {
+        content: [],
+        totalPages: 0,
+        totalElements: 0,
+        size: 10,
+        number: 0,
+        first: true,
+        last: true,
+        empty: true
+    },
     currentUser: null,
     searchedUser: null,
     isLoading: false,
@@ -46,9 +55,15 @@ const handleError = (error: unknown): string => {
 
 export const fetchAllUsers = createAsyncThunk(
     'user/fetchAll',
-    async (_, {rejectWithValue}) => {
+    async ({
+               pageRequest,
+               filters
+           }: {
+        pageRequest: PageRequest;
+        filters?: UserFilters;
+    }, { rejectWithValue }) => {
         try {
-            const response = await UserService.getAllUsers();
+            const response = await UserService.getAllUsers(pageRequest, filters);
             if (!response.success || !response.data) {
                 return rejectWithValue(response.message || 'Failed to fetch users');
             }
@@ -256,7 +271,7 @@ const userSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Fetch All Users
+            // Fetch All Users with pagination
             .addCase(fetchAllUsers.pending, (state) => {
                 state.isLoading = true;
                 state.error = null;
@@ -321,9 +336,19 @@ const userSlice = createSlice({
                 state.isLoading = true;
                 state.error = null;
             })
+            // Create User - update with pagination
             .addCase(createUser.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.users.push(action.payload);
+                // Update content array if we're on the first page
+                if (state.users.number === 0) {
+                    state.users.content = [action.payload, ...state.users.content];
+                    if (state.users.content.length > state.users.size) {
+                        state.users.content.pop();
+                    }
+                }
+                state.users.totalElements += 1;
+                state.users.totalPages = Math.ceil(state.users.totalElements / state.users.size);
+                state.users.empty = state.users.content.length === 0;
                 state.error = null;
             })
             .addCase(createUser.rejected, (state, action) => {
@@ -338,7 +363,7 @@ const userSlice = createSlice({
             })
             .addCase(updateUser.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.users = state.users.map(user =>
+                state.users.content = state.users.content.map(user =>
                     user.userId === action.payload.userId ? action.payload : user
                 );
                 if (state.currentUser?.userId === action.payload.userId) {
@@ -361,7 +386,12 @@ const userSlice = createSlice({
             })
             .addCase(deleteUser.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.users = state.users.filter(user => user.userId !== action.payload);
+                state.users.content = state.users.content.filter(
+                    user => user.userId !== action.payload
+                );
+                state.users.totalElements -= 1;
+                state.users.totalPages = Math.ceil(state.users.totalElements / state.users.size);
+                state.users.empty = state.users.content.length === 0;
                 if (state.currentUser?.userId === action.payload) {
                     state.currentUser = null;
                 }
@@ -382,9 +412,9 @@ const userSlice = createSlice({
             })
             .addCase(updateUserStatus.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.users = state.users.map(user =>
+                state.users.content = state.users.content.map(user =>
                     user.userId === action.payload.id
-                        ? {...user, status: action.payload.status}
+                        ? { ...user, status: action.payload.status }
                         : user
                 );
                 if (state.currentUser?.userId === action.payload.id) {

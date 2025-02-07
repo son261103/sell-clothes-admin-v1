@@ -1,16 +1,16 @@
 import apiConfig from '../config/apiConfig';
-import { USER_ENDPOINTS } from '../constants/userConstant';
+import {USER_ENDPOINTS} from '../constants/userConstant';
 import type {
     UserResponse,
     UserCreateRequest,
     UserUpdateRequest,
     UserStatusUpdateRequest,
     UserCheckResponse,
-    UserLoginUpdateResponse,
+    UserLoginUpdateResponse, PageRequest, UserFilters, PageResponse,
 } from '../types';
-import { AxiosError } from 'axios';
-import { uploadSingleFile } from '../config/uploadConfig';
-import { ApiResponse, ErrorResponse } from '../types';
+import {AxiosError} from 'axios';
+import {uploadSingleFile} from '../config/uploadConfig';
+import {ApiResponse, ErrorResponse} from '../types';
 
 class UserService {
     private static createErrorResponse(err: unknown): ErrorResponse {
@@ -36,16 +36,34 @@ class UserService {
         };
     }
 
-    async getAllUsers(): Promise<ApiResponse<UserResponse[]>> {
+    async getAllUsers(
+        pageRequest: PageRequest = {page: 0, size: 10, sort: 'userId'},
+        filters: UserFilters = {}
+    ): Promise<ApiResponse<PageResponse<UserResponse>>> {
         try {
+            const params = new URLSearchParams({
+                page: pageRequest.page?.toString() || '0',
+                size: pageRequest.size?.toString() || '10',
+                sort: pageRequest.sort || 'userId'
+            });
 
-            const response = await apiConfig.get<UserResponse[]>(USER_ENDPOINTS.LIST);
-            // Wrap array response in ApiResponse format
+            if (filters.search) {
+                params.append('search', filters.search);
+            }
+            if (filters.status) {
+                params.append('status', filters.status);
+            }
+
+            const response = await apiConfig.get<PageResponse<UserResponse>>(
+                `${USER_ENDPOINTS.LIST}?${params.toString()}`
+            );
+
             return UserService.wrapResponse(response.data);
         } catch (err) {
             throw UserService.createErrorResponse(err);
         }
     }
+
 
     async getUserById(id: number): Promise<ApiResponse<UserResponse>> {
         try {
@@ -209,7 +227,7 @@ class UserService {
             const response = await apiConfig.get<UserCheckResponse>(
                 USER_ENDPOINTS.CHECK_USERNAME,
                 {
-                    params: { username }
+                    params: {username}
                 }
             );
             return UserService.wrapResponse(response.data);
@@ -223,7 +241,7 @@ class UserService {
             const response = await apiConfig.get<UserCheckResponse>(
                 USER_ENDPOINTS.CHECK_EMAIL,
                 {
-                    params: { email }
+                    params: {email}
                 }
             );
             return UserService.wrapResponse(response.data);

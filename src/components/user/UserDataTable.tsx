@@ -4,10 +4,11 @@ import {
     Phone, Mail, User, Shield, Calendar, Info, RefreshCw, CheckCircle, Image,
     MoreVertical
 } from 'lucide-react';
-import type { UserResponse, UserStatus } from '../../types';
+import type {UserResponse, UserStatus, PageResponse} from '../../types';
+import Pagination from '../common/Pagination.tsx';
 
 interface UserDataTableProps {
-    users: UserResponse[];
+    users: PageResponse<UserResponse>;
     onDeleteUser: (id: number) => void;
     onEditUser: (user: UserResponse) => void;
     onStatusChange: (id: number, status: UserStatus) => void;
@@ -15,6 +16,8 @@ interface UserDataTableProps {
     onRefresh?: () => void;
     isRefreshing?: boolean;
     isMobileView?: boolean;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (size: number) => void;
 }
 
 const UserDataTable: React.FC<UserDataTableProps> = ({
@@ -25,7 +28,9 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                                          isLoading = false,
                                                          onRefresh,
                                                          isRefreshing = false,
-                                                         isMobileView = false
+                                                         isMobileView = false,
+                                                         onPageChange,
+                                                         onPageSizeChange
                                                      }) => {
     const [activeDropdown, setActiveDropdown] = React.useState<number | null>(null);
 
@@ -70,7 +75,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
         return statusMap[status] || status;
     };
 
-    const ActionButton = ({ onClick, icon: Icon, color, title }: {
+    const ActionButton = ({onClick, icon: Icon, color, title}: {
         onClick: () => void;
         icon: typeof Edit;
         color: string;
@@ -82,7 +87,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                       transition-colors duration-200 hover:scale-105 transform`}
             title={title}
         >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="w-3.5 h-3.5"/>
         </button>
     );
 
@@ -200,8 +205,9 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
 
     if (showLoading) {
         return (
-            <div className="w-full h-64 flex items-center justify-center bg-white dark:bg-secondary rounded-xl shadow-lg">
-                <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+            <div
+                className="w-full h-64 flex items-center justify-center bg-white dark:bg-secondary rounded-xl shadow-lg">
+                <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin"/>
             </div>
         );
     }
@@ -210,12 +216,14 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
         return (
             <div className="bg-white dark:bg-secondary rounded-xl shadow-lg overflow-hidden">
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {users.map((user) => (
-                        <div key={user.userId} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    {users.content.map((user) => (
+                        <div key={user.userId}
+                             className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                             {/* Header with Avatar and Actions */}
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
+                                    <div
+                                        className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
                                         {user.avatar ? (
                                             <img
                                                 src={user.avatar}
@@ -247,7 +255,8 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                         <span className="truncate">{user.email}</span>
                                     </div>
                                     {user.phone && (
-                                        <div className="flex items-center gap-2 text-sm text-secondary dark:text-highlight">
+                                        <div
+                                            className="flex items-center gap-2 text-sm text-secondary dark:text-highlight">
                                             <Phone className="w-4 h-4 shrink-0"/>
                                             <span>{user.phone}</span>
                                         </div>
@@ -280,7 +289,8 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                 </div>
 
                                 {/* Last Login */}
-                                <div className="flex items-center gap-2 text-sm text-secondary dark:text-highlight pt-2 border-t border-gray-100 dark:border-gray-700/50">
+                                <div
+                                    className="flex items-center gap-2 text-sm text-secondary dark:text-highlight pt-2 border-t border-gray-100 dark:border-gray-700/50">
                                     <Calendar className="w-4 h-4 shrink-0"/>
                                     <span>
                                         {user.lastLoginAt
@@ -292,6 +302,14 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                         </div>
                     ))}
                 </div>
+                <Pagination
+                    currentPage={users.number}
+                    totalPages={users.totalPages}
+                    onPageChange={onPageChange}
+                    pageSize={users.size}
+                    totalElements={users.totalElements}
+                    onPageSizeChange={onPageSizeChange}
+                />
             </div>
         );
     }
@@ -303,19 +321,19 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                     <thead>
                     <tr className="bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                         {[
-                            { icon: Image, label: 'Avatar' },
-                            { icon: User, label: 'Thông tin' },
-                            { icon: Info, label: 'Liên hệ' },
-                            { icon: Shield, label: 'Vai trò & Trạng thái' },
-                            { icon: Calendar, label: 'Hoạt động' },
-                            { icon: CheckCircle, label: 'Thao tác' }
+                            {icon: Image, label: 'Avatar'},
+                            {icon: User, label: 'Thông tin'},
+                            {icon: Info, label: 'Liên hệ'},
+                            {icon: Shield, label: 'Vai trò & Trạng thái'},
+                            {icon: Calendar, label: 'Hoạt động'},
+                            {icon: CheckCircle, label: 'Thao tác'}
                         ].map((header, idx) => (
                             <th key={idx} className={`py-2 px-4 text-xs font-semibold text-secondary dark:text-highlight 
                                         text-center border-r border-gray-200 dark:border-gray-700 
                                         ${idx === 0 ? 'rounded-tl-xl w-20' : ''} 
                                         ${idx === 5 ? 'rounded-tr-xl w-40 border-r-0' : ''}`}>
                                 <div className="flex items-center gap-1.5 justify-center">
-                                    {header.icon && <header.icon className="w-3.5 h-3.5" />}
+                                    {header.icon && <header.icon className="w-3.5 h-3.5"/>}
                                     <span>{header.label}</span>
                                     {idx === 1 && onRefresh && (
                                         <button
@@ -325,7 +343,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                                     ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             title="Làm mới"
                                         >
-                                            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`}/>
                                         </button>
                                     )}
                                 </div>
@@ -334,11 +352,11 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                     </tr>
                     </thead>
                     <tbody>
-                    {users.map((user, idx) => (
+                    {users.content.map((user, idx) => (
                         <tr key={user.userId}
                             className={`group hover:bg-gray-50/50 dark:hover:bg-gray-800/50 
                                         transition-colors duration-200 border-b border-gray-200 
-                                        dark:border-gray-700 ${idx === users.length - 1 ? 'border-b-0' : ''}`}
+                                        dark:border-gray-700 ${idx === users.content.length - 1 ? 'border-b-0' : ''}`}
                         >
                             <td className="py-2 px-4 border-r border-gray-200 dark:border-gray-700">
                                 <div className="w-8 h-8 mx-auto rounded-full bg-primary/10 flex items-center
@@ -351,7 +369,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                             className="w-full h-full object-cover"
                                         />
                                     ) : (
-                                        <Users className="w-4 h-4 text-primary" />
+                                        <Users className="w-4 h-4 text-primary"/>
                                     )}
                                 </div>
                             </td>
@@ -368,12 +386,12 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                             <td className="py-2 px-4 border-r border-gray-200 dark:border-gray-700">
                                 <div className="space-y-1">
                                     <div className="flex items-center text-xs text-textDark dark:text-textLight">
-                                        <Mail className="w-3.5 h-3.5 mr-1.5 text-primary/70" />
+                                        <Mail className="w-3.5 h-3.5 mr-1.5 text-primary/70"/>
                                         <span className="truncate">{user.email}</span>
                                     </div>
                                     {user.phone && (
                                         <div className="flex items-center text-xs text-textDark dark:text-textLight">
-                                            <Phone className="w-3.5 h-3.5 mr-1.5 text-primary/70" />
+                                            <Phone className="w-3.5 h-3.5 mr-1.5 text-primary/70"/>
                                             <span className="truncate">{user.phone}</span>
                                         </div>
                                     )}
@@ -393,7 +411,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                                             dark:text-primary gap-1.5 transition-all duration-200
                                                             hover:border-primary/50"
                                             >
-                                                    <Shield className="w-3.5 h-3.5" />
+                                                    <Shield className="w-3.5 h-3.5"/>
                                                 {role.name}
                                                 </span>
                                         ))}
@@ -402,7 +420,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                             </td>
                             <td className="py-2 px-4 border-r border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center text-xs text-textDark dark:text-textLight">
-                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-primary/70" />
+                                    <Calendar className="w-3.5 h-3.5 mr-1.5 text-primary/70"/>
                                     <span className="truncate">
                                             {user.lastLoginAt
                                                 ? new Date(user.lastLoginAt).toLocaleString()
@@ -418,6 +436,14 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                     </tbody>
                 </table>
             </div>
+            <Pagination
+                currentPage={users.number}
+                totalPages={users.totalPages}
+                onPageChange={onPageChange}
+                pageSize={users.size}
+                totalElements={users.totalElements}
+                onPageSizeChange={onPageSizeChange}
+            />
         </div>
     );
 };

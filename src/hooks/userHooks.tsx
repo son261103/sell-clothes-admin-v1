@@ -18,7 +18,8 @@ import {
     resetUserCheckStatus
 } from '../store/features/user/userSlice';
 import {
-    selectUsers,
+    selectUsersPage,
+    selectUsersList,
     selectCurrentUser,
     selectSearchedUser,
     selectError,
@@ -31,40 +32,49 @@ import {
     selectUserByEmail,
     selectUsersByStatus,
     selectActiveUsers,
-    selectInactiveUsers,
+    selectLockedUsers,
+    selectBannedUsers,
     selectPendingUsers,
-    selectBlockedUsers,
     selectUsersByRole,
     selectCurrentUserRoles,
     selectUsersCount,
     selectUsernameAvailability,
     selectEmailAvailability,
     selectSortedUsers,
-    selectRecentlyActiveUsers
+    selectRecentlyActiveUsers,
+    selectPageInfo,
+    selectIsFirstPage,
+    selectIsLastPage,
+    selectCurrentPage,
+    selectPageSize,
+    selectTotalPages,
+    selectIsUsersEmpty,
+    selectUserCheckMessage
 } from '../store/features/user/userSelectors';
 import type {
     UserCreateRequest,
     UserUpdateRequest,
+    UserResponse,
     UserStatus,
-    UserResponse
+    PageRequest,
+    UserFilters
 } from '../types';
-
-interface UserFilters {
-    status?: UserStatus;
-    role?: string;
-    searchTerm?: string;
-}
 
 // Main user management hook
 export const useUsers = () => {
     const dispatch = useAppDispatch();
-    const users = useAppSelector(selectUsers);
+    const usersPage = useAppSelector(selectUsersPage);
+    const usersList = useAppSelector(selectUsersList);
     const { isLoading, error } = useAppSelector(selectUserOperationStatus);
     const usersCountByStatus = useAppSelector(selectUsersCountByStatus);
+    const pageInfo = useAppSelector(selectPageInfo);
 
-    const handleFetchAllUsers = useCallback(async () => {
+    const handleFetchAllUsers = useCallback(async (
+        pageRequest: PageRequest = { page: 0, size: 10, sort: 'userId' },
+        filters: UserFilters = {}
+    ) => {
         try {
-            await dispatch(fetchAllUsers()).unwrap();
+            await dispatch(fetchAllUsers({ pageRequest, filters })).unwrap();
             return true;
         } catch {
             return false;
@@ -120,10 +130,12 @@ export const useUsers = () => {
     }, [dispatch]);
 
     return {
-        users,
+        usersPage,
+        usersList,
         isLoading,
         error,
         usersCountByStatus,
+        pageInfo,
         fetchAllUsers: handleFetchAllUsers,
         createUser: handleCreateUser,
         updateUser: handleUpdateUser,
@@ -134,37 +146,71 @@ export const useUsers = () => {
 
 // Hook for finding specific users
 export const useUserFinder = (userId?: number, username?: string, email?: string) => {
+    const dispatch = useAppDispatch();
+    const { isLoading, error } = useAppSelector(selectUserOperationStatus);
     const foundById = useAppSelector(userId ? (state => selectUserById(state, userId)) : () => null);
     const foundByUsername = useAppSelector(username ? (state => selectUserByUsername(state, username)) : () => null);
     const foundByEmail = useAppSelector(email ? (state => selectUserByEmail(state, email)) : () => null);
 
+    const handleFetchUserById = useCallback(async (id: number) => {
+        try {
+            await dispatch(fetchUserById(id)).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch]);
+
+    const handleGetUserByUsername = useCallback(async (username: string) => {
+        try {
+            await dispatch(getUserByUsername(username)).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch]);
+
+    const handleGetUserByEmail = useCallback(async (email: string) => {
+        try {
+            await dispatch(getUserByEmail(email)).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch]);
+
     return {
+        isLoading,
+        error,
         foundById,
         foundByUsername,
-        foundByEmail
+        foundByEmail,
+        fetchUserById: handleFetchUserById,
+        getUserByUsername: handleGetUserByUsername,
+        getUserByEmail: handleGetUserByEmail
     };
 };
 
 // Hook for user status filtering
 export const useUserStatusFilters = (status?: UserStatus) => {
-    const filteredByStatus = useAppSelector(status ? (state => selectUsersByStatus(state, status)) : selectUsers);
+    const filteredByStatus = useAppSelector(status ? (state => selectUsersByStatus(state, status)) : selectUsersList);
     const activeUsers = useAppSelector(selectActiveUsers);
-    const inactiveUsers = useAppSelector(selectInactiveUsers);
+    const lockedUsers = useAppSelector(selectLockedUsers);
+    const bannedUsers = useAppSelector(selectBannedUsers);
     const pendingUsers = useAppSelector(selectPendingUsers);
-    const blockedUsers = useAppSelector(selectBlockedUsers);
 
     return {
         filteredByStatus,
         activeUsers,
-        inactiveUsers,
-        pendingUsers,
-        blockedUsers
+        lockedUsers,
+        bannedUsers,
+        pendingUsers
     };
 };
 
 // Hook for role-based operations
 export const useUserRoles = (roleName?: string) => {
-    const usersByRole = useAppSelector(roleName ? (state => selectUsersByRole(state, roleName)) : selectUsers);
+    const usersByRole = useAppSelector(roleName ? (state => selectUsersByRole(state, roleName)) : selectUsersList);
     const currentUserRoles = useAppSelector(selectCurrentUserRoles);
 
     return {
@@ -178,18 +224,22 @@ export const useUserStats = () => {
     const totalUsers = useAppSelector(selectUsersCount);
     const usernameAvailable = useAppSelector(selectUsernameAvailability);
     const emailAvailable = useAppSelector(selectEmailAvailability);
+    const usersCountByStatus = useAppSelector(selectUsersCountByStatus);
+    const isEmpty = useAppSelector(selectIsUsersEmpty);
 
     return {
         totalUsers,
         usernameAvailable,
-        emailAvailable
+        emailAvailable,
+        usersCountByStatus,
+        isEmpty
     };
 };
 
 // Hook for sorted user lists
 export const useSortedUsers = (sortBy?: keyof UserResponse, sortOrder: 'asc' | 'desc' = 'asc') => {
     const sortedUsers = useAppSelector(
-        sortBy ? (state => selectSortedUsers(state, sortBy, sortOrder)) : selectUsers
+        sortBy ? (state => selectSortedUsers(state, sortBy, sortOrder)) : selectUsersList
     );
     const recentlyActiveUsers = useAppSelector(selectRecentlyActiveUsers);
 
@@ -278,9 +328,14 @@ export const useUserSearch = () => {
 // Hook for user filtering
 export const useUserFilters = (filters: UserFilters = {}) => {
     const filteredUsers = useAppSelector(state => selectFilteredUsers(state, filters));
+    const { isLoading, error } = useAppSelector(selectUserOperationStatus);
+    const isEmpty = useAppSelector(selectIsUsersEmpty);
 
     return {
-        filteredUsers
+        filteredUsers,
+        isLoading,
+        error,
+        isEmpty
     };
 };
 
@@ -289,6 +344,7 @@ export const useUserAvailability = () => {
     const dispatch = useAppDispatch();
     const userCheckStatus = useAppSelector(selectUserCheckStatus);
     const { isLoading, error } = useAppSelector(selectUserOperationStatus);
+    const checkMessage = useAppSelector(selectUserCheckMessage);
 
     const handleCheckUsername = useCallback(async (username: string) => {
         try {
@@ -316,9 +372,29 @@ export const useUserAvailability = () => {
         isLoading,
         error,
         userCheckStatus,
+        checkMessage,
         checkUsername: handleCheckUsername,
         checkEmail: handleCheckEmail,
         resetCheckStatus: handleResetCheckStatus
+    };
+};
+
+// Hook for pagination
+export const usePagination = () => {
+    const isFirstPage = useAppSelector(selectIsFirstPage);
+    const isLastPage = useAppSelector(selectIsLastPage);
+    const currentPage = useAppSelector(selectCurrentPage);
+    const pageSize = useAppSelector(selectPageSize);
+    const totalPages = useAppSelector(selectTotalPages);
+    const pageInfo = useAppSelector(selectPageInfo);
+
+    return {
+        isFirstPage,
+        isLastPage,
+        currentPage,
+        pageSize,
+        totalPages,
+        pageInfo
     };
 };
 

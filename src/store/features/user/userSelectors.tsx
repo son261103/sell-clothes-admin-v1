@@ -1,13 +1,18 @@
-import {createSelector} from 'reselect';
-import type {RootState} from '../../store';
-import type {UserResponse, UserStatus} from '../../../types';
+import { createSelector } from 'reselect';
+import type { RootState } from '../../store';
+import type { UserResponse, UserStatus } from '../../../types';
 
 // Basic selectors
 export const selectUserState = (state: RootState) => state.user;
 
-export const selectUsers = createSelector(
+export const selectUsersPage = createSelector(
     selectUserState,
     (state) => state.users
+);
+
+export const selectUsersList = createSelector(
+    selectUsersPage,
+    (users) => users.content
 );
 
 export const selectCurrentUser = createSelector(
@@ -35,51 +40,65 @@ export const selectUserCheckStatus = createSelector(
     (state) => state.userCheckStatus
 );
 
+// Pagination selectors
+export const selectPageInfo = createSelector(
+    selectUsersPage,
+    (users) => ({
+        totalPages: users.totalPages,
+        totalElements: users.totalElements,
+        size: users.size,
+        number: users.number,
+        first: users.first,
+        last: users.last,
+        empty: users.empty
+    })
+);
+
 // User information selectors
 export const selectUserById = createSelector(
-    [selectUsers, (_, userId: number) => userId],
+    [selectUsersList, (_, userId: number) => userId],
     (users, userId) => users.find(user => user.userId === userId) || null
 );
 
 export const selectUserByUsername = createSelector(
-    [selectUsers, (_, username: string) => username],
+    [selectUsersList, (_, username: string) => username],
     (users, username) => users.find(user => user.username === username) || null
 );
 
 export const selectUserByEmail = createSelector(
-    [selectUsers, (_, email: string) => email],
+    [selectUsersList, (_, email: string) => email],
     (users, email) => users.find(user => user.email === email) || null
 );
 
 // Status-based selectors
 export const selectUsersByStatus = createSelector(
-    [selectUsers, (_, status: UserStatus) => status],
+    [selectUsersList, (_, status: UserStatus) => status],
     (users, status) => users.filter(user => user.status === status)
 );
 
 export const selectActiveUsers = createSelector(
-    selectUsers,
+    selectUsersList,
     (users) => users.filter(user => user.status === 'ACTIVE' as UserStatus)
 );
 
-export const selectInactiveUsers = createSelector(
-    selectUsers,
-    (users) => users.filter(user => user.status === 'INACTIVE' as UserStatus)
+export const selectLockedUsers = createSelector(
+    selectUsersList,
+    (users) => users.filter(user => user.status === 'LOCKED' as UserStatus)
+);
+
+export const selectBannedUsers = createSelector(
+    selectUsersList,
+    (users) => users.filter(user => user.status === 'BANNED' as UserStatus)
 );
 
 export const selectPendingUsers = createSelector(
-    selectUsers,
+    selectUsersList,
     (users) => users.filter(user => user.status === 'PENDING' as UserStatus)
-);
-
-export const selectBlockedUsers = createSelector(
-    selectUsers,
-    (users) => users.filter(user => user.status === 'BLOCKED' as UserStatus)
 );
 
 // Role-based selectors
 export const selectUsersByRole = createSelector(
-    [selectUsers, (_, roleName: string) => roleName],
+    [selectUsersList, (_, roleName: string) => roleName],
     (users, roleName) => users.filter(user =>
         user.roles.some(role => role.name === roleName)
     )
@@ -98,40 +117,37 @@ interface UserFilters {
 }
 
 export const selectFilteredUsers = createSelector(
-    [selectUsers, (_, filters: UserFilters) => filters],
-    (users, filters) => users.filter(user => {
-        const matchesStatus = !filters.status || user.status === filters.status;
-        const matchesRole = !filters.role ||
-            user.roles.some(role => role.name === filters.role);
-        const matchesSearch = !filters.searchTerm ||
-            user.username.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-            user.fullName.toLowerCase().includes(filters.searchTerm.toLowerCase());
+    [selectUsersList, (_, filters: UserFilters) => filters],
+    (users, filters) => {
+        if (!filters) return users;
 
-        return matchesStatus && matchesRole && matchesSearch;
-    })
+        return users.filter(user => {
+            const matchesStatus = !filters.status || user.status === filters.status;
+            const matchesRole = !filters.role ||
+                user.roles.some(role => role.name === filters.role);
+            const matchesSearch = !filters.searchTerm ||
+                user.username.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                (user.fullName && user.fullName.toLowerCase().includes(filters.searchTerm.toLowerCase()));
+
+            return matchesStatus && matchesRole && matchesSearch;
+        });
+    }
 );
 
 // Count selectors
-interface StatusCount {
-    ACTIVE: number;
-    INACTIVE: number;
-    PENDING: number;
-    BLOCKED: number;
-}
-
 export const selectUsersCount = createSelector(
-    selectUsers,
-    (users) => users.length
+    selectPageInfo,
+    (pageInfo) => pageInfo.totalElements
 );
 
 export const selectUsersCountByStatus = createSelector(
-    selectUsers,
-    (users): StatusCount => ({
+    selectUsersList,
+    (users) => ({
         ACTIVE: users.filter(user => user.status === 'ACTIVE').length,
-        INACTIVE: users.filter(user => user.status === 'LOCKED').length,
-        PENDING: users.filter(user => user.status === 'PENDING').length,
-        BLOCKED: users.filter(user => user.status === 'BANNER').length
+        LOCKED: users.filter(user => user.status === 'LOCKED').length,
+        BANNER: users.filter(user => user.status === 'BANNER').length,
+        PENDING: users.filter(user => user.status === 'PENDING').length
     })
 );
 
@@ -167,7 +183,7 @@ type SortOrder = 'asc' | 'desc';
 
 export const selectSortedUsers = createSelector(
     [
-        selectUsers,
+        selectUsersList,
         (_, sortBy: keyof UserResponse) => sortBy,
         (_, __, sortOrder: SortOrder = 'asc') => sortOrder
     ],
@@ -180,6 +196,14 @@ export const selectSortedUsers = createSelector(
             if (aVal === undefined || aVal === null) return 1;
             if (bVal === undefined || bVal === null) return -1;
 
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+
+            if (aVal instanceof Date && bVal instanceof Date) {
+                return sortOrder === 'asc' ? aVal.getTime() - bVal.getTime() : bVal.getTime() - aVal.getTime();
+            }
+
             const comparison = String(aVal).localeCompare(String(bVal));
             return sortOrder === 'asc' ? comparison : -comparison;
         });
@@ -188,7 +212,7 @@ export const selectSortedUsers = createSelector(
 
 // Last login selectors
 export const selectRecentlyActiveUsers = createSelector(
-    selectUsers,
+    selectUsersList,
     (users) => [...users]
         .filter(user => user.lastLoginAt)
         .sort((a, b) => {
@@ -196,4 +220,42 @@ export const selectRecentlyActiveUsers = createSelector(
             const dateB = b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
             return dateB - dateA;
         })
+);
+
+// User check message selector
+export const selectUserCheckMessage = createSelector(
+    selectUserCheckStatus,
+    (status) => status.message
+);
+
+// Empty state selector
+export const selectIsUsersEmpty = createSelector(
+    selectPageInfo,
+    (pageInfo) => pageInfo.empty
+);
+
+// Pagination status selectors
+export const selectIsFirstPage = createSelector(
+    selectPageInfo,
+    (pageInfo) => pageInfo.first
+);
+
+export const selectIsLastPage = createSelector(
+    selectPageInfo,
+    (pageInfo) => pageInfo.last
+);
+
+export const selectCurrentPage = createSelector(
+    selectPageInfo,
+    (pageInfo) => pageInfo.number
+);
+
+export const selectPageSize = createSelector(
+    selectPageInfo,
+    (pageInfo) => pageInfo.size
+);
+
+export const selectTotalPages = createSelector(
+    selectPageInfo,
+    (pageInfo) => pageInfo.totalPages
 );

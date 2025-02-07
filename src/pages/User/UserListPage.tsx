@@ -4,12 +4,14 @@ import {
     Filter,
 } from 'lucide-react';
 import UserDataTable from '../../components/user/UserDataTable';
-import {useUsers, useUserFilters} from '../../hooks/userHooks';
-import type {UserResponse, UserStatus} from '../../types';
+import {useUsers} from '../../hooks/userHooks';
+import type {UserResponse, UserStatus, PageRequest} from '../../types';
 import {Link} from "react-router-dom";
 
 const UserListPage = () => {
-    const {users, isLoading, fetchAllUsers, deleteUser, updateUserStatus} = useUsers();
+    const [currentPage, setCurrentPage] = useState(0);
+    const [pageSize, setPageSize] = useState(10);
+    const {usersPage, isLoading, fetchAllUsers, deleteUser, updateUserStatus} = useUsers();
     const [isMobileView, setIsMobileView] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -46,34 +48,54 @@ const UserListPage = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const {filteredUsers} = useUserFilters({
-        status: selectedStatus || undefined,
-        role: selectedRole || undefined,
-        searchTerm: searchTerm || quickSearch || undefined
-    });
+    // Handle pagination and filters
+    useEffect(() => {
+        const fetchData = () => {
+            const pageRequest: PageRequest = {
+                page: currentPage,
+                size: pageSize,
+                sort: 'userId,desc'
+            };
+
+            const filters = {
+                status: selectedStatus || undefined,
+                role: selectedRole || undefined,
+                search: searchTerm || quickSearch || undefined
+            };
+
+            fetchAllUsers(pageRequest, filters);
+        };
+
+        fetchData();
+    }, [currentPage, pageSize, selectedStatus, selectedRole, searchTerm, quickSearch, fetchAllUsers]);
 
     const availableRoles = useMemo(() => {
         const roleSet = new Set<string>();
-        users.forEach(user => {
+        usersPage.content.forEach(user => {
             user.roles.forEach(role => {
                 roleSet.add(role.name);
             });
         });
         return Array.from(roleSet);
-    }, [users]);
-
-    useEffect(() => {
-        fetchAllUsers();
-    }, [fetchAllUsers]);
+    }, [usersPage.content]);
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        await fetchAllUsers();
+        await fetchAllUsers({
+            page: currentPage,
+            size: pageSize,
+            sort: 'userId,desc'
+        }, {
+            status: selectedStatus || undefined,
+            role: selectedRole || undefined,
+            search: searchTerm || quickSearch || undefined
+        });
         setIsRefreshing(false);
     };
 
     const handleQuickSearch = () => {
         setSearchTerm(quickSearch);
+        setCurrentPage(0); // Reset to first page when searching
     };
 
     const handleEditUser = (user: UserResponse) => {
@@ -81,16 +103,18 @@ const UserListPage = () => {
     };
 
     const handleDeleteUser = async (id: number) => {
-        const userToDelete = users.find(u => u.userId === id);
+        const userToDelete = usersPage.content.find(u => u.userId === id);
         if (!userToDelete) return;
 
         if (window.confirm(`Bạn có chắc chắn muốn xóa người dùng ${userToDelete.fullName}?`)) {
             await deleteUser(id);
+            // Refresh the current page after deletion
+            handleRefresh();
         }
     };
 
     const handleStatusChange = async (id: number, status: UserStatus) => {
-        const userToUpdate = users.find(u => u.userId === id);
+        const userToUpdate = usersPage.content.find(u => u.userId === id);
         if (!userToUpdate) return;
 
         const statusMessages = {
@@ -102,7 +126,18 @@ const UserListPage = () => {
 
         if (window.confirm(`Bạn có chắc chắn muốn ${statusMessages[status]} người dùng ${userToUpdate.fullName}?`)) {
             await updateUserStatus(id, status);
+            // Refresh the current page after status update
+            handleRefresh();
         }
+    };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handlePageSizeChange = (size: number) => {
+        setPageSize(size);
+        setCurrentPage(0);
     };
 
     const clearFilters = () => {
@@ -110,6 +145,7 @@ const UserListPage = () => {
         setQuickSearch('');
         setSelectedStatus('');
         setSelectedRole('');
+        setCurrentPage(0);
         setIsFilterMenuOpen(false);
     };
 
@@ -163,7 +199,7 @@ const UserListPage = () => {
                                     }`}
                                     onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
                                 >
-                                    <Filter className="w-3.5 w-3.5"/>
+                                    <Filter className="w-3.5 h-3.5"/>
                                     <span className="hidden sm:inline">Bộ lọc</span>
                                     {(selectedStatus || selectedRole) && (
                                         <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
@@ -173,7 +209,8 @@ const UserListPage = () => {
                                 </button>
                             </div>
 
-                            <button className="h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5">
+                            <button
+                                className="h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5">
                                 <Download className="h-3.5 w-3.5"/>
                                 <span className="hidden sm:inline">Xuất danh sách</span>
                             </button>
@@ -188,7 +225,7 @@ const UserListPage = () => {
                     {/* Overlay */}
                     <div
                         className="fixed inset-0 bg-black/20 dark:bg-black/40"
-                        style={{ zIndex: 40 }}
+                        style={{zIndex: 40}}
                         onClick={() => setIsFilterMenuOpen(false)}
                     />
 
@@ -211,7 +248,10 @@ const UserListPage = () => {
                                 <select
                                     className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
                                     value={selectedStatus}
-                                    onChange={(e) => setSelectedStatus(e.target.value as UserStatus | '')}
+                                    onChange={(e) => {
+                                        setSelectedStatus(e.target.value as UserStatus | '');
+                                        setCurrentPage(0);
+                                    }}
                                 >
                                     <option value="">Tất cả trạng thái</option>
                                     <option value="ACTIVE">Đang hoạt động</option>
@@ -229,7 +269,10 @@ const UserListPage = () => {
                                 <select
                                     className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
                                     value={selectedRole}
-                                    onChange={(e) => setSelectedRole(e.target.value)}
+                                    onChange={(e) => {
+                                        setSelectedRole(e.target.value);
+                                        setCurrentPage(0);
+                                    }}
                                 >
                                     <option value="">Tất cả vai trò</option>
                                     {availableRoles.map(role => (
@@ -257,8 +300,9 @@ const UserListPage = () => {
     return (
         <div className="space-y-6">
             {/* Page Header - Mobile responsive */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 sm:p-1 border-b"
-                 data-aos="fade-down"
+            <div
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 sm:p-1 border-b"
+                data-aos="fade-down"
             >
                 <div>
                     <h1 className="text-xl font-semibold text-textDark dark:text-textLight">
@@ -283,14 +327,14 @@ const UserListPage = () => {
             {renderSearchAndFilters()}
 
             {/* User Table */}
-            <div className="relative" style={{ zIndex: 10 }}>
+            <div className="relative" style={{zIndex: 10}}>
                 <div
                     className="bg-white dark:bg-secondary rounded-xl shadow-sm overflow-hidden"
                     data-aos="fade-up"
                     data-aos-delay="500"
                 >
                     <UserDataTable
-                        users={filteredUsers}
+                        users={usersPage}
                         onDeleteUser={handleDeleteUser}
                         onEditUser={handleEditUser}
                         onStatusChange={handleStatusChange}
@@ -298,6 +342,8 @@ const UserListPage = () => {
                         onRefresh={handleRefresh}
                         isRefreshing={isRefreshing}
                         isMobileView={isMobileView}
+                        onPageChange={handlePageChange}
+                        onPageSizeChange={handlePageSizeChange}
                     />
                 </div>
             </div>
