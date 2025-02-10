@@ -1,12 +1,12 @@
-import React, {useEffect} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
-import {useAuth} from '../hooks/authHooks';
-import {jwtDecode} from 'jwt-decode';
+import React, { useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
+import { initializeSession } from '../config/apiConfig';
 
-// Define a type for the decoded token structure
 interface DecodedToken {
     roles: string[];
     permissions: string[];
+    status: string;
 }
 
 interface ProtectedRouteProps {
@@ -22,49 +22,85 @@ export const ProtectedRoute = ({
                                    requiredPermissions = [],
                                    forbiddenRoles = []
                                }: ProtectedRouteProps) => {
-    const {isAuthenticated} = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [isAuthorized, setIsAuthorized] = React.useState<boolean | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    const checkPermissions = useCallback((decoded: DecodedToken): boolean => {
+        const userRoles = decoded.roles || [];
+        const userPermissions = decoded.permissions || [];
+
+        return !(
+            decoded.status === 'BANNED' ||
+            (forbiddenRoles.length > 0 &&
+                forbiddenRoles.some(role => userRoles.includes(role))) ||
+            (requiredRoles.length > 0 &&
+                !requiredRoles.some(role => userRoles.includes(role))) ||
+            (requiredPermissions.length > 0 &&
+                !requiredPermissions.some(permission =>
+                    userPermissions.includes(permission)))
+        );
+    }, [forbiddenRoles, requiredRoles, requiredPermissions]);
 
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
+        let mounted = true;
 
-        if (!token) {
-            sessionStorage.setItem('redirectPath', location.pathname);
-            navigate('/auth/login', {replace: true});
-            return;
-        }
+        const checkAuthorization = async () => {
+            try {
+                const isSessionValid = await initializeSession();
 
-        try {
-            const decoded = jwtDecode<DecodedToken>(token);
-            const userRoles = decoded.roles || [];
-            const userPermissions = decoded.permissions || [];
+                if (!isSessionValid) {
+                    if (mounted) {
+                        sessionStorage.setItem('redirectPath', location.pathname);
+                        navigate('/auth/login', { replace: true });
+                    }
+                    return;
+                }
 
-            // Check required roles
-            const hasRequiredRole = requiredRoles.length === 0 ||
-                requiredRoles.some(role => userRoles.includes(role));
+                const token = sessionStorage.getItem('accessToken');
+                if (!token) {
+                    if (mounted) {
+                        sessionStorage.setItem('redirectPath', location.pathname);
+                        navigate('/auth/login', { replace: true });
+                    }
+                    return;
+                }
 
-            // Check required permissions
-            const hasRequiredPermission = requiredPermissions.length === 0 ||
-                requiredPermissions.some(permission => userPermissions.includes(permission));
+                const decoded = jwtDecode<DecodedToken>(token);
+                const hasPermission = checkPermissions(decoded);
 
-            // Check forbidden roles
-            const hasForbiddenRole = forbiddenRoles.some(role => userRoles.includes(role));
+                if (!hasPermission) {
+                    if (mounted) {
+                        navigate(decoded.status === 'BANNED' ?
+                                '/account-banned' : '/forbidden',
+                            { replace: true }
+                        );
+                    }
+                    return;
+                }
 
-            if (
-                (!hasRequiredRole || !hasRequiredPermission) ||
-                hasForbiddenRole
-            ) {
-                navigate('/forbidden', {replace: true});
+                if (mounted) {
+                    setIsAuthorized(true);
+                }
+            } catch {
+                if (mounted) {
+                    navigate('/auth/login', { replace: true });
+                }
+            } finally {
+                if (mounted) {
+                    setIsLoading(false);
+                }
             }
-        } catch {
-            // Invalid token
-            localStorage.removeItem('accessToken');
-            navigate('/auth/login', {replace: true});
-        }
-    }, [isAuthenticated, requiredRoles, requiredPermissions, forbiddenRoles, navigate, location]);
+        };
 
-    if (!isAuthenticated) return null;
+        checkAuthorization();
 
-    return <>{children}</>;
+        return () => {
+            mounted = false;
+        };
+    }, [navigate, location, checkPermissions]);
+
+    if (isLoading) return null;
+    return isAuthorized ? <>{children}</> : null;
 };

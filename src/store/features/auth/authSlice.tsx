@@ -1,6 +1,6 @@
 // authSlice.tsx
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
+import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
+import type {PayloadAction} from '@reduxjs/toolkit';
 import AuthService from '../../../services/authService.tsx';
 import type {
     LoginRequest,
@@ -37,15 +37,23 @@ const initialState: AuthState = {
 
 export const login = createAsyncThunk(
     'auth/login',
-    async (credentials: LoginRequest) => {
-        const response = await AuthService.login(credentials);
-        return response.data;
+    async (credentials: LoginRequest, { rejectWithValue }) => {
+        try {
+            const response = await AuthService.login(credentials);
+
+            if (!response?.accessToken) {
+                return rejectWithValue('Missing access token in response');
+            }
+            return response;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+        }
     }
 );
 
 export const register = createAsyncThunk(
     'auth/register',
-    async ({ data, otp }: { data: RegisterRequest; otp?: string }) => {
+    async ({data, otp}: { data: RegisterRequest; otp?: string }) => {
         const response = await AuthService.register(data, otp);
         return response.data;
     }
@@ -93,11 +101,16 @@ export const resetPassword = createAsyncThunk(
 
 export const logout = createAsyncThunk(
     'auth/logout',
-    async () => {
-        const response = await AuthService.logout();
-        return response;
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await AuthService.logout();
+            return response;
+        } catch (error) {
+            return rejectWithValue(error);
+        }
     }
 );
+
 
 const authSlice = createSlice({
     name: 'auth',
@@ -135,7 +148,7 @@ const authSlice = createSlice({
             .addCase(login.rejected, (state, action) => {
                 state.isLoading = false;
                 state.isAuthenticated = false;
-                state.error = action.error.message || 'Login failed';
+                state.error = action.payload as string || 'Login failed';
             })
 
             // Register
@@ -233,17 +246,19 @@ const authSlice = createSlice({
             // Logout
             .addCase(logout.pending, (state) => {
                 state.isLoading = true;
-            })
-            .addCase(logout.fulfilled, (state) => {
-                state.isLoading = false;
-                state.isAuthenticated = false;
-                state.user = null;
                 state.error = null;
             })
-            .addCase(logout.rejected, (state) => {
-                state.isLoading = false;
-                state.isAuthenticated = false;
-                state.user = null;
+            .addCase(logout.fulfilled, () => {
+                return {
+                    ...initialState,
+                    isLoading: false
+                };
+            })
+            .addCase(logout.rejected, (_, action) => {
+                return {
+                    ...initialState,
+                    error: action.payload ? String(action.payload) : 'Logout failed'
+                };
             });
     }
 });

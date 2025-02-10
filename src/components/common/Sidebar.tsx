@@ -59,7 +59,12 @@ const menuItems: MenuItem[] = [
         children: [
             {
                 title: 'User List',
-                path: '/admin/users',
+                path: '/admin/users/list',
+                icon: <Users className="w-4 h-4" />,
+            },
+            {
+                title: 'User Edit',
+                path: '/admin/users/edit',
                 icon: <Users className="w-4 h-4" />,
             },
             {
@@ -364,13 +369,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, onToggle }) => {
         <>
             {isMobile && isOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                    className="fixed inset-0 bg-secondary bg-opacity-50 z-40"
                     onClick={onToggle}
                 />
             )}
 
             <aside
-                className={`fixed top-0 left-0 h-screen bg-white dark:bg-darkBackground
+                className={`fixed top-0 left-0 h-screen bg-white dark:bg-secondary
                        shadow-lg transition-all duration-300 ease-in-out z-50
                        ${isOpen ? 'w-64' : 'w-16'} 
                        ${isMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}

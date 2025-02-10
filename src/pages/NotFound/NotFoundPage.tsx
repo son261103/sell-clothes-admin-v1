@@ -1,7 +1,7 @@
 import {Link} from 'react-router-dom';
 import {Home, ArrowLeft} from 'lucide-react';
 
-const NotFound = () => {
+const NotFoundPage = () => {
     return (
         <div className="min-h-screen bg-lightBackground dark:bg-darkBackground flex items-center justify-center p-4">
             <div className="max-w-md w-full text-center" data-aos="fade-up">
@@ -33,4 +33,4 @@ const NotFound = () => {
     );
 };
 
-export default NotFound;
+export default NotFoundPage;

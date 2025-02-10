@@ -1,45 +1,133 @@
-import React, {useState, useCallback} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {User, ArrowRight, Loader2} from 'lucide-react';
-import {useAuth} from '../../hooks/authHooks';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth, useOtp, useAuthError } from '../../hooks/authHooks';
 import FormInput from "../../components/auth/FormInput";
-import {toast} from 'react-hot-toast';
-import {jwtDecode} from 'jwt-decode';
-import {validateForm} from '../../utils/auth/loginUtils';
+import { toast } from 'react-hot-toast';
+import { jwtDecode } from 'jwt-decode';
+import { validateForm } from '../../utils/auth/loginUtils';
 
-// Define a type for the decoded token structure
 interface DecodedToken {
     roles: string[];
+    status: string;
+    email: string;
+    permissions?: string[];
+}
+
+interface LoginFormData {
+    loginId: string;
+    password: string;
+    rememberMe: boolean;
+}
+
+interface FormErrors {
+    loginId: string;
+    password: string;
 }
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    const {login, isLoading, error} = useAuth();
-    const [formData, setFormData] = useState({
+    const location = useLocation();
+    const { login, isAuthenticated, isLoading } = useAuth();
+    const { sendOtp } = useOtp();
+    const { error, clearError } = useAuthError();
+
+    const [isResendCooldown, setIsResendCooldown] = useState(false);
+    const [cooldownTime, setCooldownTime] = useState(0);
+
+    const [formData, setFormData] = useState<LoginFormData>({
         loginId: '',
         password: '',
         rememberMe: false,
     });
 
-    const [errors, setErrors] = useState({
+    const [errors, setErrors] = useState<FormErrors>({
         loginId: '',
         password: '',
     });
 
+    // Clear any existing auth errors when component mounts
+    useEffect(() => {
+        clearError();
+        // Check for redirect parameters
+        const params = new URLSearchParams(location.search);
+        if (params.get('verified') === 'true') {
+            toast.success('Email đã được xác minh. Vui lòng đăng nhập.');
+        }
+    }, [clearError, location]);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            const token = sessionStorage.getItem('accessToken');
+            if (token) {
+                const decoded = jwtDecode<DecodedToken>(token);
+                if (decoded.roles.includes('ROLE_CUSTOMER')) {
+                    window.location.href = 'http://localhost:3001/';
+                } else {
+                    navigate('/admin/dashboard');
+                }
+            }
+        }
+    }, [isAuthenticated, navigate]);
+
+    const startCooldownTimer = useCallback((seconds: number) => {
+        setIsResendCooldown(true);
+        setCooldownTime(seconds);
+        const timer = setInterval(() => {
+            setCooldownTime((prevTime) => {
+                if (prevTime <= 1) {
+                    clearInterval(timer);
+                    setIsResendCooldown(false);
+                    return 0;
+                }
+                return prevTime - 1;
+            });
+        }, 1000);
+    }, []);
+
+    const handleActivateAccount = useCallback(async (email: string) => {
+        const loadingToast = toast.loading('Đang gửi mã OTP...');
+        try {
+            await sendOtp({ email });
+            await new Promise(resolve => setTimeout(resolve, 500));
+            navigate('/auth/verify-otp', { state: { email } });
+            toast.success('Mã OTP đã được gửi đến email của bạn');
+        } catch (error) {
+            if (error instanceof Error) {
+                const errorMessage = error.message;
+                if (errorMessage.includes("wait")) {
+                    const seconds = parseInt(errorMessage.match(/\d+/)?.[0] || "0");
+                    if (seconds > 0) {
+                        startCooldownTimer(seconds);
+                        toast.error(`Vui lòng đợi ${seconds} giây trước khi gửi lại OTP`);
+                        return;
+                    }
+                }
+                toast.error(errorMessage);
+            }
+        } finally {
+            toast.dismiss(loadingToast);
+        }
+    }, [sendOtp, navigate, startCooldownTimer]);
+
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value, type, checked} = e.target;
-        setFormData((prev) => ({
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
         }));
-    }, []);
+        // Clear error message when user starts typing
+        setErrors(prev => ({ ...prev, [name]: '' }));
+        // Clear any auth errors
+        clearError();
+    }, [clearError]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate the form data
-        const {loginIdError, passwordError} = validateForm(formData.loginId, formData.password);
-
+        // Validate form
+        const { loginIdError, passwordError } = validateForm(formData.loginId, formData.password);
         if (loginIdError || passwordError) {
             setErrors({
                 loginId: loginIdError,
@@ -51,41 +139,58 @@ const LoginPage: React.FC = () => {
         const loadingToast = toast.loading('Đang đăng nhập...');
 
         try {
-            const success = await login({
+            // Call login from useAuth
+            const loginResult = await login({
                 loginId: formData.loginId,
                 password: formData.password,
+                rememberMe: formData.rememberMe
             });
 
-            if (success) {
-                const token = localStorage.getItem('accessToken');
-
-                if (token) {
-                    const decoded = jwtDecode<DecodedToken>(token);
-                    const roles = decoded.roles || [];
-
-                    if (!roles.includes('ROLE_CUSTOMER')) {
-                        navigate('/admin/dashboard');
-                    } else if (roles.includes('ROLE_CUSTOMER')) {
-                        navigate('/home');
-                    } else {
-                        navigate('/unauthorized');
-                    }
-                }
-
-                if (formData.rememberMe) {
-                    localStorage.setItem('rememberMe', 'true');
-                }
-
-                toast.success('Đăng nhập thành công!');
-            } else {
-                toast.error(error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+            // Check if login was successful by checking the return value
+            if (!loginResult) {
+                toast.error('Đăng nhập thất bại');
+                return;
             }
-        } catch {
-            toast.error('Đăng nhập thất bại. Vui lòng thử lại sau.');
+
+            const token = sessionStorage.getItem('accessToken');
+
+            if (!token) {
+                toast.error('Không tìm thấy token sau khi đăng nhập');
+                return;
+            }
+
+            const decoded = jwtDecode<DecodedToken>(token);
+            const { roles, status, email } = decoded;
+
+            if (status === 'PENDING') {
+                toast.success('Tài khoản chưa được kích hoạt');
+                if (window.confirm('Bạn có muốn kích hoạt tài khoản ngay bây giờ?')) {
+                    await handleActivateAccount(email);
+                    return;
+                }
+                return;
+            }
+
+            toast.success('Đăng nhập thành công!');
+
+            // Redirect based on role
+            if (roles.includes('ROLE_CUSTOMER')) {
+                window.location.href = 'http://localhost:3001/';
+            } else {
+                navigate('/admin/dashboard');
+            }
+
+        } catch (error) {
+            console.error('Login error:', error);
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error('Đã xảy ra lỗi không mong muốn');
+            }
         } finally {
             toast.dismiss(loadingToast);
         }
-    }, [formData, login, navigate, error]);
+    }, [formData, login, navigate, handleActivateAccount]);
 
     const handleSocialLogin = useCallback((provider: 'Google' | 'Facebook') => {
         toast.error(`Đăng nhập bằng ${provider} chưa được hỗ trợ`);
@@ -111,7 +216,7 @@ const LoginPage: React.FC = () => {
                         value={formData.loginId}
                         onChange={handleInputChange}
                         placeholder="Email hoặc tên đăng nhập của bạn"
-                        icon={<User className="h-5 w-5"/>}
+                        icon={<User className="h-5 w-5" />}
                         required
                         error={errors.loginId}
                     />
@@ -137,8 +242,8 @@ const LoginPage: React.FC = () => {
                                 className="checkbox checkbox-primary"
                             />
                             <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                Ghi nhớ đăng nhập
-              </span>
+                                Ghi nhớ đăng nhập
+                            </span>
                         </label>
                         <Link
                             to="/auth/forgot-password"
@@ -150,18 +255,30 @@ const LoginPage: React.FC = () => {
 
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || isResendCooldown}
                         className="btn btn-primary w-full gap-2"
                     >
                         {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin"/>
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                             <>
                                 Đăng nhập
-                                <ArrowRight className="h-5 w-5"/>
+                                <ArrowRight className="h-5 w-5" />
                             </>
                         )}
                     </button>
+
+                    {isResendCooldown && (
+                        <p className="text-sm text-center text-gray-500">
+                            Vui lòng đợi {cooldownTime} giây trước khi thử lại
+                        </p>
+                    )}
+
+                    {error && (
+                        <p className="text-sm text-center text-red-500">
+                            {error}
+                        </p>
+                    )}
                 </form>
 
                 <div className="relative my-6">
@@ -169,12 +286,11 @@ const LoginPage: React.FC = () => {
                         <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-              hoặc
-            </span>
+                        <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                            hoặc
+                        </span>
                     </div>
                 </div>
-
 
                 <div className="grid grid-cols-2 gap-4" data-aos="fade-up" data-aos-delay="200">
                     <button
@@ -183,14 +299,10 @@ const LoginPage: React.FC = () => {
                         className="btn btn-outline gap-2 hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 48 48">
-                            <path fill="#FFC107"
-                                  d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
-                            <path fill="#FF3D00"
-                                  d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/>
-                            <path fill="#4CAF50"
-                                  d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
-                            <path fill="#1976D2"
-                                  d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+                            <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                            <path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/>
+                            <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                            <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
                         </svg>
                         Google
                     </button>
@@ -200,13 +312,11 @@ const LoginPage: React.FC = () => {
                         className="btn btn-outline gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h3v-1.278C10 6.693 11.035 6 12.5 6H15v2z"/>
+                            <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z"/>
                         </svg>
                         Facebook
                     </button>
                 </div>
-
 
                 <div className="text-center mt-6" data-aos="fade-up">
                     <p className="text-gray-700 dark:text-gray-300">
@@ -221,8 +331,7 @@ const LoginPage: React.FC = () => {
                 </div>
             </div>
         </div>
-    )
-        ;
+    );
 };
 
 export default LoginPage;

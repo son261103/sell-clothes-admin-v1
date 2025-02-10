@@ -41,11 +41,27 @@ export const useAuth = () => {
     const permissions = useAppSelector(selectUserPermissions);
 
     const handleLogin = useCallback(
-        async (credentials: LoginRequest) => {
+        async (credentials: LoginRequest): Promise<boolean> => {
             try {
-                await dispatch(login(credentials)).unwrap();
+
+                const result = await dispatch(login(credentials)).unwrap();
+
+                if (!result?.accessToken) {
+                    return false;
+                }
+
+                if (credentials.rememberMe) {
+                    sessionStorage.setItem('accessToken', result.accessToken.trim());
+                } else {
+                    sessionStorage.setItem('accessToken', result.accessToken.trim());
+                    if (result.refreshToken) {
+                        sessionStorage.setItem('refreshToken', result.refreshToken.trim());
+                    }
+                }
+
                 return true;
-            } catch {
+            } catch (error) {
+                console.error('Hook: Error during login process:', error);
                 return false;
             }
         },
@@ -56,6 +72,11 @@ export const useAuth = () => {
         async () => {
             try {
                 await dispatch(logout()).unwrap();
+                // Xóa tất cả tokens và user data
+                sessionStorage.removeItem('accessToken');
+                sessionStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                localStorage.removeItem('rememberMe');
                 return true;
             } catch {
                 return false;
@@ -128,6 +149,7 @@ export const useOtp = () => {
     const otpVerified = useAppSelector(selectOtpVerified);
     const otpSent = useAppSelector(selectOtpSent);
     const {isLoading, error} = useAppSelector(selectAuthStatus);
+
 
     const handleSendOtp = useCallback(
         async (data: SendOtpRequest) => {
