@@ -8,7 +8,6 @@ import {
     FileText,
     Sparkles,
     ChevronDown,
-    UserCog,
     UserPlus,
     Boxes,
     Package,
@@ -61,16 +60,6 @@ const menuItems: MenuItem[] = [
                 title: 'User List',
                 path: '/admin/users/list',
                 icon: <Users className="w-4 h-4" />,
-            },
-            {
-                title: 'User Edit',
-                path: '/admin/users/edit',
-                icon: <Users className="w-4 h-4" />,
-            },
-            {
-                title: 'User Roles',
-                path: '/admin/users/roles',
-                icon: <UserCog className="w-4 h-4" />,
             },
             {
                 title: 'Add User',

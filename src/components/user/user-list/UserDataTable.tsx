@@ -4,8 +4,8 @@ import {
     Phone, Mail, User, Shield, Calendar, Info, RefreshCw, CheckCircle, Image,
     MoreVertical
 } from 'lucide-react';
-import type {UserResponse, UserStatus, PageResponse} from '../../types';
-import Pagination from '../common/Pagination.tsx';
+import type {UserResponse, UserStatus, PageResponse} from '../../../types';
+import Pagination from '../../common/Pagination.tsx';
 
 interface UserDataTableProps {
     users: PageResponse<UserResponse>;

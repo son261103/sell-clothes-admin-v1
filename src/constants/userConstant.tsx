@@ -10,4 +10,10 @@ export const USER_ENDPOINTS = {
     UPDATE_LAST_LOGIN: (userId: number) => `/users/${userId}/last-login`,
     CHECK_USERNAME: '/users/check-username',
     CHECK_EMAIL: '/users/check-email',
+
+    // avatar
+    UPLOAD_AVATAR: (userId: number) => `/users/avatar/${userId}`,
+    UPDATE_AVATAR: (userId: number) => `/users/avatar/${userId}`,
+    DELETE_AVATAR: (userId: number) => `/users/avatar/${userId}`,
+
 } as const;

@@ -21,14 +21,3 @@ export interface UserLoginUpdateResponse {
     success: boolean;
     message: string;
 }
-
-// Form Data Interfaces for File Upload
-export interface UserCreateFormData {
-    user: string;
-    avatar?: File;
-}
-
-export interface UserUpdateFormData {
-    user: string;
-    avatar?: File;
-}

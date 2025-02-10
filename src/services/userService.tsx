@@ -9,7 +9,6 @@ import type {
     UserLoginUpdateResponse, PageRequest, UserFilters, PageResponse,
 } from '../types';
 import {AxiosError} from 'axios';
-import {uploadSingleFile} from '../config/uploadConfig';
 import {ApiResponse, ErrorResponse} from '../types';
 
 class UserService {
@@ -164,46 +163,12 @@ class UserService {
         }
     }
 
-    async createUser(
-        userData: UserCreateRequest,
-        avatarFile?: File,
-        onProgress?: (progress: number) => void
-    ): Promise<ApiResponse<UserResponse>> {
+    async createUser(userData: UserCreateRequest): Promise<ApiResponse<UserResponse>> {
         try {
-            let avatarUrl: string | undefined;
-
-            if (avatarFile) {
-                const uploadResponse = await uploadSingleFile(avatarFile, onProgress);
-                if (!uploadResponse.success) {
-                    throw new Error('Failed to upload avatar');
-                }
-                avatarUrl = uploadResponse.data.url;
-            }
-
-            const finalUserData: UserCreateRequest = {
-                ...userData,
-                avatar: avatarUrl
-            };
-
-            const formData = new FormData();
-            formData.append('user', JSON.stringify(finalUserData));
-            if (avatarFile) {
-                formData.append('avatar', avatarFile);
-            }
-
             const response = await apiConfig.post<UserResponse>(
                 USER_ENDPOINTS.CREATE,
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                userData
             );
-
-            if (!response.data) {
-                throw new Error('Failed to create user');
-            }
             return UserService.wrapResponse(response.data);
         } catch (err) {
             throw UserService.createErrorResponse(err);
@@ -212,45 +177,13 @@ class UserService {
 
     async updateUser(
         id: number,
-        userData: UserUpdateRequest,
-        avatarFile?: File,
-        onProgress?: (progress: number) => void
+        userData: UserUpdateRequest
     ): Promise<ApiResponse<UserResponse>> {
         try {
-            let avatarUrl: string | undefined;
-
-            if (avatarFile) {
-                const uploadResponse = await uploadSingleFile(avatarFile, onProgress);
-                if (!uploadResponse.success) {
-                    throw new Error('Failed to upload avatar');
-                }
-                avatarUrl = uploadResponse.data.url;
-            }
-
-            const finalUserData: UserUpdateRequest = {
-                ...userData,
-                avatar: avatarUrl || userData.avatar
-            };
-
-            const formData = new FormData();
-            formData.append('user', JSON.stringify(finalUserData));
-            if (avatarFile) {
-                formData.append('avatar', avatarFile);
-            }
-
             const response = await apiConfig.put<UserResponse>(
                 USER_ENDPOINTS.EDIT(id),
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                userData
             );
-
-            if (!response.data) {
-                throw new Error('Failed to update user');
-            }
             return UserService.wrapResponse(response.data);
         } catch (err) {
             throw UserService.createErrorResponse(err);

@@ -5,7 +5,7 @@ import {
     Filter,
 } from 'lucide-react';
 
-import UserDataTable from '../../components/user/UserDataTable';
+import UserDataTable from '../../components/user/user-list/UserDataTable.tsx';
 import {useUsers} from '../../hooks/userHooks';
 import type {
     UserResponse,
@@ -13,7 +13,7 @@ import type {
     PageRequest,
     UserFilters
 } from '../../types';
-import UserEditPopup from "../../components/user/UserEditPopup.tsx";
+import UserEditPopup from "../../components/user/user-edit/UserEditPopup.tsx";
 
 // Type cho status filter
 type UserStatusFilter = UserStatus | '';
@@ -289,7 +289,7 @@ const UserListPage = () => {
                             Trạng thái
                         </label>
                         <select
-                            className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
+                            className="bg-white w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
                             value={selectedStatus}
                             onChange={(e) => handleFilterChange('status', e.target.value)}
                         >
@@ -303,11 +303,11 @@ const UserListPage = () => {
 
                     {/* Role Filter */}
                     <div>
-                        <label className="text-sm font-medium mb-1 block text-textDark dark:text-textLight">
+                        <label className=" text-sm font-medium mb-1 block text-textDark dark:text-textLight">
                             Vai trò
                         </label>
                         <select
-                            className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
+                            className="bg-white w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
                             value={selectedRole}
                             onChange={(e) => handleFilterChange('role', e.target.value)}
                         >
@@ -332,7 +332,7 @@ const UserListPage = () => {
                             Sắp xếp theo
                         </label>
                         <select
-                            className="w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
+                            className="bg-white w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
                             value={sortBy}
                             onChange={(e) => handleSortChange(e.target.value)}
                         >
@@ -373,7 +373,7 @@ const UserListPage = () => {
                 </div>
                 <div className="w-full sm:w-auto">
                     <Link
-                        to="/user/create"
+                        to="/admin/users/add"
                         className="inline-flex w-full sm:w-auto justify-center h-9 px-3 text-sm rounded-md bg-primary text-white hover:bg-primary/90 items-center gap-1.5"
                     >
                         <UserPlus className="h-3.5 w-3.5"/>

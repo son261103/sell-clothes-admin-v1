@@ -39,3 +39,12 @@ export interface UserUpdateRequest {
 export interface UserStatusUpdateRequest {
     status: string;
 }
+
+export interface UserData {
+    username: string;
+    email: string;
+    password?: string;
+    fullName: string;
+    phone?: string;
+    avatar?: string;
+}
