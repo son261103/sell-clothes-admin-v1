@@ -3,7 +3,7 @@ import { RouteObjectWithMeta } from '../types';
 import { Navigate, Outlet } from 'react-router-dom';
 
 // Lazy load các components
-const UserList = lazy(() => import('../../pages/User/UserListPage'));
+const UserListPage = lazy(() => import('../../pages/User/UserListPage'));
 
 export const userRoutes: RouteObjectWithMeta[] = [
     {
@@ -16,12 +16,12 @@ export const userRoutes: RouteObjectWithMeta[] = [
             },
             {
                 path: 'list',
-                element: <UserList />,
+                element: <UserListPage />,
                 meta: {
                     title: 'User Management',
                     requiredPermissions: ['VIEW_CUSTOMER']
                 }
-            }
+            },
         ],
         meta: {
             title: 'User Management',

@@ -82,14 +82,18 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
         title: string;
     }) => (
         <button
-            onClick={onClick}
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
             className={`p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 ${color} 
-                      transition-colors duration-200 hover:scale-105 transform`}
+                  transition-colors duration-200 hover:scale-105 transform`}
             title={title}
         >
             <Icon className="w-3.5 h-3.5"/>
         </button>
     );
+
 
     const renderActionButtons = (user: UserResponse) => (
         <div className="flex items-center gap-1.5">
@@ -125,7 +129,10 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
     const renderMobileActions = (user: UserResponse) => (
         <div className="relative">
             <button
-                onClick={() => setActiveDropdown(activeDropdown === user.userId ? null : user.userId)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveDropdown(activeDropdown === user.userId ? null : user.userId);
+                }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
             >
                 <MoreVertical className="w-5 h-5 text-secondary dark:text-highlight"/>
@@ -137,7 +144,8 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                     className="absolute right-0 mt-2 w-48 rounded-lg bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
                 >
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             onEditUser(user);
                             setActiveDropdown(null);
                         }}

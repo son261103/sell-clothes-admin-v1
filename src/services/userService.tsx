@@ -36,23 +36,81 @@ class UserService {
         };
     }
 
+    // async getAllUsers(
+    //     pageRequest: PageRequest = {page: 0, size: 10, sort: 'userId'},
+    //     filters: UserFilters = {}
+    // ): Promise<ApiResponse<PageResponse<UserResponse>>> {
+    //     try {
+    //         const params = new URLSearchParams({
+    //             page: pageRequest.page?.toString() || '0',
+    //             size: pageRequest.size?.toString() || '10',
+    //             sort: pageRequest.sort || 'userId'
+    //         });
+    //
+    //         if (filters.search) {
+    //             params.append('search', filters.search);
+    //         }
+    //         if (filters.status) {
+    //             params.append('status', filters.status);
+    //         }
+    //
+    //         const response = await apiConfig.get<PageResponse<UserResponse>>(
+    //             `${USER_ENDPOINTS.LIST}?${params.toString()}`
+    //         );
+    //
+    //         return UserService.wrapResponse(response.data);
+    //     } catch (err) {
+    //         throw UserService.createErrorResponse(err);
+    //     }
+    // }
+
+
     async getAllUsers(
-        pageRequest: PageRequest = {page: 0, size: 10, sort: 'userId'},
+        pageRequest: PageRequest = { page: 0, size: 10, sort: 'userId,desc' },
         filters: UserFilters = {}
     ): Promise<ApiResponse<PageResponse<UserResponse>>> {
         try {
-            const params = new URLSearchParams({
-                page: pageRequest.page?.toString() || '0',
-                size: pageRequest.size?.toString() || '10',
-                sort: pageRequest.sort || 'userId'
+            const params = new URLSearchParams();
+
+            // Xử lý pagination params
+            params.append('page', String(pageRequest.page ?? 0));
+            params.append('size', String(pageRequest.size ?? 10));
+            params.append('sort', pageRequest.sort || 'userId,desc');
+
+            // Xử lý các filter params
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== undefined && value !== '') {
+                    switch (key) {
+                        case 'search':
+                            if (value.trim()) {
+                                params.append('search', value.trim());
+                            }
+                            break;
+                        case 'status':
+                            params.append('status', value);
+                            break;
+                        case 'role':
+                            params.append('role', value);
+                            break;
+                        case 'startDate':
+                            params.append('startDate', value);
+                            break;
+                        case 'endDate':
+                            params.append('endDate', value);
+                            break;
+                        case 'sortBy':
+                            params.append('sortBy', value);
+                            break;
+                        case 'sortDirection':
+                            params.append('sortDirection', value);
+                            break;
+                    }
+                }
             });
 
-            if (filters.search) {
-                params.append('search', filters.search);
-            }
-            if (filters.status) {
-                params.append('status', filters.status);
-            }
+            // Log để debug
+            console.debug('[UserService] Request URL:', `${USER_ENDPOINTS.LIST}?${params.toString()}`);
+            console.debug('[UserService] Applied filters:', filters);
 
             const response = await apiConfig.get<PageResponse<UserResponse>>(
                 `${USER_ENDPOINTS.LIST}?${params.toString()}`
@@ -60,6 +118,7 @@ class UserService {
 
             return UserService.wrapResponse(response.data);
         } catch (err) {
+            console.error('[UserService] Error in getAllUsers:', err);
             throw UserService.createErrorResponse(err);
         }
     }
