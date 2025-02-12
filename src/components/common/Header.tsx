@@ -43,7 +43,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
                     <div className="flex-1 max-w-xl px-4 hidden md:block">
                         <div className="relative">
                             <input
-                                type="text"
+                                type="search"
                                 placeholder="Search..."
                                 className="w-full px-4 py-2 rounded-lg bg-primary/10 dark:bg-secondary/30
                                          text-primary dark:text-textLight

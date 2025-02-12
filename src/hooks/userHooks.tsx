@@ -81,27 +81,21 @@ export const useUsers = () => {
         }
     }, [dispatch]);
 
-    const handleCreateUser = useCallback(async (
-        userData: UserCreateRequest,
-        avatarFile?: File,
-        onProgress?: (progress: number) => void
-    ) => {
+    const handleCreateUser = useCallback(async (userData: UserCreateRequest): Promise<UserResponse | null> => {
         try {
-            await dispatch(createUser({ userData, avatarFile, onProgress })).unwrap();
-            return true;
+            const result = await dispatch(createUser(userData)).unwrap();
+            return result;
         } catch {
-            return false;
+            return null;
         }
     }, [dispatch]);
 
     const handleUpdateUser = useCallback(async (
         id: number,
-        userData: UserUpdateRequest,
-        avatarFile?: File,
-        onProgress?: (progress: number) => void
+        userData: UserUpdateRequest
     ) => {
         try {
-            await dispatch(updateUser({ id, userData, avatarFile, onProgress })).unwrap();
+            await dispatch(updateUser({ id, userData })).unwrap();
             return true;
         } catch {
             return false;

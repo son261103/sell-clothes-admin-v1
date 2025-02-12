@@ -170,17 +170,9 @@ const UserListPage = () => {
     const handleDeleteUser = async (id: number) => {
         const userToDelete = usersPage.content.find(u => u.userId === id);
         if (!userToDelete) return;
-
-        if (window.confirm(`Bạn có chắc chắn muốn xóa người dùng ${userToDelete.fullName}?`)) {
-            await deleteUser(id);
-            await handleRefresh();
-        }
+        await deleteUser(id);
+        await handleRefresh();
     };
-
-    // const navigate = useNavigate();
-    // const handleEditUser = (user: UserResponse) => {
-    //     navigate(`/admin/users/edit/${user.userId}`);
-    // };
 
     const handleEditUser = (user: UserResponse) => {
         setSelectedUserId(user.userId);

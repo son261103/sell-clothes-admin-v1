@@ -39,7 +39,7 @@ createRoot(document.getElementById('root')!).render(
                                 },
                             },
                             error: {
-                                duration: 4000,
+                                duration: 3000,
                                 className: '!bg-red-50 dark:!bg-red-950 !text-red-800 dark:!text-red-200 !border-red-200 dark:!border-red-900',
                                 iconTheme: {
                                     primary: '#ef4444',

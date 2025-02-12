@@ -121,17 +121,9 @@ export const getUserByEmail = createAsyncThunk(
 
 export const createUser = createAsyncThunk(
     'user/create',
-    async ({
-               userData,
-               avatarFile,
-               onProgress
-           }: {
-        userData: UserCreateRequest;
-        avatarFile?: File;
-        onProgress?: (progress: number) => void;
-    }, {rejectWithValue}) => {
+    async (userData: UserCreateRequest, {rejectWithValue}) => {
         try {
-            const response = await UserService.createUser(userData, avatarFile, onProgress);
+            const response = await UserService.createUser(userData);
             if (!response.success || !response.data) {
                 return rejectWithValue(response.message || 'Failed to create user');
             }
@@ -144,19 +136,9 @@ export const createUser = createAsyncThunk(
 
 export const updateUser = createAsyncThunk(
     'user/update',
-    async ({
-               id,
-               userData,
-               avatarFile,
-               onProgress
-           }: {
-        id: number;
-        userData: UserUpdateRequest;
-        avatarFile?: File;
-        onProgress?: (progress: number) => void;
-    }, {rejectWithValue}) => {
+    async ({id, userData}: { id: number; userData: UserUpdateRequest }, {rejectWithValue}) => {
         try {
-            const response = await UserService.updateUser(id, userData, avatarFile, onProgress);
+            const response = await UserService.updateUser(id, userData);
             if (!response.success || !response.data) {
                 return rejectWithValue(response.message || 'Failed to update user');
             }

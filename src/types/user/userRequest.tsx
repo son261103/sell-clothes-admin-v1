@@ -24,6 +24,7 @@ export interface UserCreateRequest {
     phone?: string;
     avatar?: string;
     status?: UserStatus;
+
 }
 
 export interface UserUpdateRequest {
@@ -41,10 +42,12 @@ export interface UserStatusUpdateRequest {
 }
 
 export interface UserData {
+    userId?: number;
     username: string;
     email: string;
-    password?: string;
     fullName: string;
     phone?: string;
     avatar?: string;
+    password?: string;
+    status?: UserStatus;
 }

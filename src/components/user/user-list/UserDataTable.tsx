@@ -33,6 +33,24 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                                          onPageSizeChange
                                                      }) => {
     const [activeDropdown, setActiveDropdown] = React.useState<number | null>(null);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = React.useState(false);
+    const [userToDelete, setUserToDelete] = React.useState<UserResponse | null>(null);
+
+    // Handler for initiating delete
+    const handleDeleteClick = (user: UserResponse) => {
+        setUserToDelete(user);
+        setShowDeleteConfirmation(true);
+        setActiveDropdown(null); // Close dropdown if open
+    };
+
+    // Handler for confirming delete
+    const confirmDelete = () => {
+        if (userToDelete) {
+            onDeleteUser(userToDelete.userId);
+            setShowDeleteConfirmation(false);
+            setUserToDelete(null);
+        }
+    };
 
     // Close dropdown when clicking outside
     React.useEffect(() => {
@@ -118,7 +136,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                 title="Cấm tài khoản"
             />
             <ActionButton
-                onClick={() => onDeleteUser(user.userId)}
+                onClick={() => handleDeleteClick(user)}
                 icon={Trash2}
                 color="text-red-600 dark:text-red-400"
                 title="Xóa"
@@ -186,8 +204,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                     <div className="border-t border-gray-200 dark:border-gray-700 my-1"/>
                     <button
                         onClick={() => {
-                            onDeleteUser(user.userId);
-                            setActiveDropdown(null);
+                            handleDeleteClick(user);
                         }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700/50 flex items-center gap-2 text-red-600"
                     >
@@ -443,6 +460,39 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                     ))}
                     </tbody>
                 </table>
+                {showDeleteConfirmation && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                                Xác nhận xóa
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Bạn có chắc chắn muốn xóa người dùng{' '}
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {userToDelete?.fullName}
+                            </span>{' '}
+                                không? Hành động này không thể hoàn tác.
+                            </p>
+                            <div className="flex justify-end space-x-4">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteConfirmation(false);
+                                        setUserToDelete(null);
+                                    }}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                >
+                                    Xác nhận xóa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
             <Pagination
                 currentPage={users.number}

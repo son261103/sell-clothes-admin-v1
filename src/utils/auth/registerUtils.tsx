@@ -4,6 +4,7 @@ export interface ValidationErrors {
     password?: string;
     confirmPassword?: string;
     fullName?: string;
+    phone?: string;
 }
 
 export interface RegisterFormData {
