@@ -16,4 +16,9 @@ export const USER_ENDPOINTS = {
     UPDATE_AVATAR: (userId: number) => `/users/avatar/${userId}`,
     DELETE_AVATAR: (userId: number) => `/users/avatar/${userId}`,
 
+    // Add these to your USER_ENDPOINTS constant
+    ADD_ROLE_TO_USER: (userId: number, roleId: number) => `/users/${userId}/roles/${roleId}`,
+    REMOVE_ROLE_FROM_USER: (userId: number, roleId: number) => `/users/${userId}/roles/${roleId}`,
+    UPDATE_USER_ROLES: (userId: number) => `/users/${userId}/roles`,
+    REMOVE_MULTIPLE_ROLES: (userId: number) => `/users/${userId}/roles/bulk`,
 } as const;

@@ -15,7 +15,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
 
     return (
         <header
-            className={`fixed top-0 left-0 h-auto w-full bg-lightBackground dark:bg-darkBackground shadow-md z-50
+            className={`fixed top-0 left-0 h-auto w-full bg-white dark:bg-darkBackground shadow-md z-50
                        transition-all duration-300
                        ${isSidebarOpen && !isMobile ? 'lg:pl-64' : ''}
                        ${!isSidebarOpen && !isMobile ? 'lg:pl-16' : ''}`}

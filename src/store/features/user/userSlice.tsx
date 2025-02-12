@@ -61,7 +61,7 @@ export const fetchAllUsers = createAsyncThunk(
            }: {
         pageRequest: PageRequest;
         filters?: UserFilters;
-    }, { rejectWithValue }) => {
+    }, {rejectWithValue}) => {
         try {
             const response = await UserService.getAllUsers(pageRequest, filters);
             if (!response.success || !response.data) {
@@ -230,6 +230,68 @@ export const updateLastLogin = createAsyncThunk(
     }
 );
 
+// User slice role
+export const addRoleToUser = createAsyncThunk(
+    'user/addRole',
+    async ({userId, roleId}: { userId: number; roleId: number }, {rejectWithValue}) => {
+        try {
+            const response = await UserService.addRoleToUser(userId, roleId);
+            if (!response.success || !response.data) {
+                return rejectWithValue(response.message || 'Failed to add role to user');
+            }
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
+export const removeRoleFromUser = createAsyncThunk(
+    'user/removeRole',
+    async ({userId, roleId}: { userId: number; roleId: number }, {rejectWithValue}) => {
+        try {
+            const response = await UserService.removeRoleFromUser(userId, roleId);
+            if (!response.success || !response.data) {
+                return rejectWithValue(response.message || 'Failed to remove role from user');
+            }
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
+export const updateUserRoles = createAsyncThunk(
+    'user/updateRoles',
+    async ({userId, roleIds}: { userId: number; roleIds: Set<number> }, {rejectWithValue}) => {
+        try {
+            const response = await UserService.updateUserRoles(userId, roleIds);
+            if (!response.success || !response.data) {
+                return rejectWithValue(response.message || 'Failed to update user roles');
+            }
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
+export const removeMultipleRolesFromUser = createAsyncThunk(
+    'user/removeMultipleRoles',
+    async ({userId, roleIds}: { userId: number; roleIds: Set<number> }, {rejectWithValue}) => {
+        try {
+            const response = await UserService.removeMultipleRolesFromUser(userId, roleIds);
+            if (!response.success || !response.data) {
+                return rejectWithValue(response.message || 'Failed to remove multiple roles from user');
+            }
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
+
 const userSlice = createSlice({
     name: 'user',
     initialState,
@@ -396,7 +458,7 @@ const userSlice = createSlice({
                 state.isLoading = false;
                 state.users.content = state.users.content.map(user =>
                     user.userId === action.payload.id
-                        ? { ...user, status: action.payload.status }
+                        ? {...user, status: action.payload.status}
                         : user
                 );
                 if (state.currentUser?.userId === action.payload.id) {
@@ -448,9 +510,86 @@ const userSlice = createSlice({
             .addCase(checkEmail.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
+            })
+            //     user role
+            .addCase(addRoleToUser.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(addRoleToUser.fulfilled, (state, action) => {
+                state.isLoading = false;
+                updateUserInAllStates(state, action.payload);
+                state.error = null;
+            })
+            .addCase(addRoleToUser.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
+            // Remove Role
+            .addCase(removeRoleFromUser.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(removeRoleFromUser.fulfilled, (state, action) => {
+                state.isLoading = false;
+                updateUserInAllStates(state, action.payload);
+                state.error = null;
+            })
+            .addCase(removeRoleFromUser.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
+            // Update Roles
+            .addCase(updateUserRoles.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(updateUserRoles.fulfilled, (state, action) => {
+                state.isLoading = false;
+                updateUserInAllStates(state, action.payload);
+                state.error = null;
+            })
+            .addCase(updateUserRoles.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
+            // Remove Multiple Roles
+            .addCase(removeMultipleRolesFromUser.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(removeMultipleRolesFromUser.fulfilled, (state, action) => {
+                state.isLoading = false;
+                updateUserInAllStates(state, action.payload);
+                state.error = null;
+            })
+            .addCase(removeMultipleRolesFromUser.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
             });
     }
 });
+
+// Helper function to update user in all states
+const updateUserInAllStates = (state: UserState, updatedUser: UserResponse) => {
+    // Update in users list
+    state.users.content = state.users.content.map(user =>
+        user.userId === updatedUser.userId ? updatedUser : user
+    );
+
+    // Update current user if matched
+    if (state.currentUser?.userId === updatedUser.userId) {
+        state.currentUser = updatedUser;
+    }
+
+    // Update searched user if matched
+    if (state.searchedUser?.userId === updatedUser.userId) {
+        state.searchedUser = updatedUser;
+    }
+};
 
 export const {
     clearError,

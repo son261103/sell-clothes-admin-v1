@@ -1,6 +1,6 @@
-import { createSelector } from 'reselect';
-import type { RootState } from '../../store';
-import type { UserResponse, UserStatus } from '../../../types';
+import {createSelector} from 'reselect';
+import type {RootState} from '../../store';
+import type {UserResponse, UserStatus} from '../../../types';
 
 // Basic selectors
 export const selectUserState = (state: RootState) => state.user;
@@ -258,4 +258,34 @@ export const selectPageSize = createSelector(
 export const selectTotalPages = createSelector(
     selectPageInfo,
     (pageInfo) => pageInfo.totalPages
+);
+
+// user role selectors
+export const selectUserRoles = createSelector(
+    [selectUsersList, (_, userId: number) => userId],
+    (users, userId) => {
+        const user = users.find(user => user.userId === userId);
+        return user?.roles || [];
+    }
+);
+
+export const selectUserRoleIds = createSelector(
+    selectUserRoles,
+    (roles) => new Set(roles.map(role => role.roleId))
+);
+
+export const selectUserRoleNames = createSelector(
+    selectUserRoles,
+    (roles) => roles.map(role => role.name)
+);
+
+
+// Role modification status selectors
+export const selectRoleModificationStatus = createSelector(
+    [selectIsLoading, selectError],
+    (isLoading, error) => ({
+        isLoading,
+        error,
+        isSuccess: !isLoading && !error
+    })
 );

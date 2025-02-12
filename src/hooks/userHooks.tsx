@@ -15,7 +15,11 @@ import {
     clearError,
     clearCurrentUser,
     clearSearchedUser,
-    resetUserCheckStatus
+    resetUserCheckStatus,
+    addRoleToUser,
+    removeRoleFromUser,
+    updateUserRoles,
+    removeMultipleRolesFromUser
 } from '../store/features/user/userSlice';
 import {
     selectUsersPage,
@@ -49,7 +53,11 @@ import {
     selectPageSize,
     selectTotalPages,
     selectIsUsersEmpty,
-    selectUserCheckMessage
+    selectUserCheckMessage,
+    selectUserRoles,
+    selectUserRoleIds,
+    selectUserRoleNames,
+    selectRoleModificationStatus
 } from '../store/features/user/userSelectors';
 import type {
     UserCreateRequest,
@@ -391,6 +399,83 @@ export const usePagination = () => {
         pageInfo
     };
 };
+
+export const useUserRoleOperations = (userId?: number) => {
+    const dispatch = useAppDispatch();
+    const userRoles = useAppSelector(userId ? state => selectUserRoles(state, userId) : () => []);
+    const roleIds = useAppSelector(userId ? state => selectUserRoleIds(state, userId) : () => new Set());
+    const roleNames = useAppSelector(userId ? state => selectUserRoleNames(state, userId) : () => []);
+    const { isLoading, error, isSuccess } = useAppSelector(selectRoleModificationStatus);
+
+    const handleAddRole = useCallback(async (roleId: number) => {
+        if (!userId) return false;
+        try {
+            await dispatch(addRoleToUser({ userId, roleId })).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch, userId]);
+
+    const handleRemoveRole = useCallback(async (roleId: number) => {
+        if (!userId) return false;
+        try {
+            await dispatch(removeRoleFromUser({ userId, roleId })).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch, userId]);
+
+    const handleUpdateRoles = useCallback(async (roleIds: Set<number>) => {
+        if (!userId) return false;
+        try {
+            await dispatch(updateUserRoles({ userId, roleIds })).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch, userId]);
+
+    const handleRemoveMultipleRoles = useCallback(async (roleIds: Set<number>) => {
+        if (!userId) return false;
+        try {
+            await dispatch(removeMultipleRolesFromUser({ userId, roleIds })).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch, userId]);
+
+    return {
+        userRoles,
+        roleIds,
+        roleNames,
+        isLoading,
+        error,
+        isSuccess,
+        addRole: handleAddRole,
+        removeRole: handleRemoveRole,
+        updateRoles: handleUpdateRoles,
+        removeMultipleRoles: handleRemoveMultipleRoles
+    };
+};
+
+// Hook for role error handling
+export const useRoleError = () => {
+    const dispatch = useAppDispatch();
+    const { error } = useAppSelector(selectRoleModificationStatus);
+
+    const handleClearError = useCallback(() => {
+        dispatch(clearError());
+    }, [dispatch]);
+
+    return {
+        error,
+        clearError: handleClearError
+    };
+};
+
 
 // Hook for error handling
 export const useUserError = () => {

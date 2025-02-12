@@ -252,6 +252,57 @@ class UserService {
             throw UserService.createErrorResponse(err);
         }
     }
+
+
+//     user role
+    async addRoleToUser(userId: number, roleId: number): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.post<UserResponse>(
+                USER_ENDPOINTS.ADD_ROLE_TO_USER(userId, roleId)
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async removeRoleFromUser(userId: number, roleId: number): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.delete<UserResponse>(
+                USER_ENDPOINTS.REMOVE_ROLE_FROM_USER(userId, roleId)
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async updateUserRoles(userId: number, roleIds: Set<number>): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.put<UserResponse>(
+                USER_ENDPOINTS.UPDATE_USER_ROLES(userId),
+                Array.from(roleIds)
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
+    async removeMultipleRolesFromUser(userId: number, roleIds: Set<number>): Promise<ApiResponse<UserResponse>> {
+        try {
+            const response = await apiConfig.delete<UserResponse>(
+                USER_ENDPOINTS.REMOVE_MULTIPLE_ROLES(userId),
+                {
+                    data: Array.from(roleIds)
+                }
+            );
+            return UserService.wrapResponse(response.data);
+        } catch (err) {
+            throw UserService.createErrorResponse(err);
+        }
+    }
+
 }
 
 export default new UserService();
