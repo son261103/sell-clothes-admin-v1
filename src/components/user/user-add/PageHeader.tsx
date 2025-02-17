@@ -7,7 +7,7 @@ interface PageHeaderProps {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ onCancel }) => {
     return (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:p-1 border-b dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 sm:p-1 border-b aos-init aos-animate">
             <div className="flex items-center gap-4">
                 <button
                     onClick={onCancel}

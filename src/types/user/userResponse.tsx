@@ -1,4 +1,5 @@
-import {RoleResponse, UserStatus} from "./userRequest.tsx";
+import { UserStatus} from "./userRequest.tsx";
+import {RoleResponse} from "../role/roleResponse.tsx";
 
 export interface UserResponse {
     userId: number;

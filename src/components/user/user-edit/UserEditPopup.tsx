@@ -1,4 +1,3 @@
-// UserEditPopup.tsx
 import {useState, useEffect, useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useUsers, useUserFinder} from '../../../hooks/userHooks.tsx';
@@ -71,6 +70,17 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
         }
     }, [fetchedUser]);
 
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
     const handleRefresh = async () => {
         if (!userId) return;
 
@@ -114,13 +124,18 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
 
     const handleClose = useCallback(() => {
         setIsClosing(true);
-        // Delay to allow exit animation to complete
         setTimeout(() => {
             setIsClosing(false);
             onClose();
             navigate('/admin/users/list');
         }, 300);
     }, [onClose, navigate]);
+
+    const handleOverlayClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClose();
+    };
 
     if (!isOpen && !isClosing) return null;
 
@@ -134,7 +149,7 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        onClick={handleClose}
+                        onClick={handleOverlayClick}
                     />
 
                     <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -144,6 +159,7 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
                             initial="hidden"
                             animate="visible"
                             exit="exit"
+                            onClick={(e) => e.stopPropagation()}
                         >
                             <motion.div variants={modalAnimationVariants.content}>
                                 <UserEditHeader

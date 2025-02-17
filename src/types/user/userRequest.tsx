@@ -1,11 +1,5 @@
 export type UserStatus = 'ACTIVE' | 'LOCKED' | 'BANNER' | 'PENDING';
 
-export interface RoleResponse {
-    roleId: number;
-    name: string;
-    description?: string;
-}
-
 export interface UserFilters {
     search?: string;
     status?: UserStatus;

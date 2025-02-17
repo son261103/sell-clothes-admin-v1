@@ -169,7 +169,6 @@ const UserAddPage = () => {
                     return;
                 }
 
-                // Nếu không có lỗi, tiếp tục xử lý
                 toast.success('Kiểm tra thông tin thành công', { id: toastId });
                 setFormData(prev => ({ ...prev, profileCompleted: true }));
                 setActiveTab('password');
@@ -189,7 +188,6 @@ const UserAddPage = () => {
             setIsSubmitting(true);
             const toastId = toast.loading('Đang tạo người dùng mới...');
 
-            // Check availability again before final submission
             const [usernameCheck, emailCheck] = await Promise.all([
                 checkUsername(formData.username),
                 checkEmail(formData.email)
@@ -256,10 +254,15 @@ const UserAddPage = () => {
     const isLoading = isUserLoading || isSubmitting || isAvatarLoading;
 
     return (
-        <div className="space-y-4">
-            <PageHeader onCancel={handleCancel} />
+        <div className="space-y-6">
+            {/* Page Header */}
+            <div
+                data-aos="fade-down"
+            >
+                <PageHeader onCancel={handleCancel} />
+            </div>
 
-            <div className="relative">
+            <div className="relative" data-aos="fade-up" data-aos-delay="300">
                 <div className="bg-white dark:bg-secondary rounded-xl shadow-sm overflow-hidden">
                     <UserAddTabs
                         activeTab={activeTab}

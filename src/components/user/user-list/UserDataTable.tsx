@@ -359,7 +359,7 @@ const UserDataTable: React.FC<UserDataTableProps> = ({
                                         ${idx === 5 ? 'rounded-tr-xl w-40 border-r-0' : ''}`}>
                                 <div className="flex items-center gap-1.5 justify-center">
                                     {header.icon && <header.icon className="w-3.5 h-3.5"/>}
-                                    <span>{header.label}</span>
+                                    <span className={" font-bold "}>{header.label}</span>
                                     {idx === 1 && onRefresh && (
                                         <button
                                             onClick={onRefresh}

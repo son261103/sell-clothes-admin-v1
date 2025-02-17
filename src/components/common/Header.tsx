@@ -15,7 +15,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
 
     return (
         <header
-            className={`fixed top-0 left-0 h-auto w-full bg-white dark:bg-darkBackground shadow-md z-50
+            className={`fixed top-0 left-0 h-auto w-full bg-white dark:bg-secondary shadow-md z-50
                        transition-all duration-300
                        ${isSidebarOpen && !isMobile ? 'lg:pl-64' : ''}
                        ${!isSidebarOpen && !isMobile ? 'lg:pl-16' : ''}`}
@@ -28,7 +28,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
                         <button
                             onClick={onToggle}
                             className="p-2 rounded-lg hover:bg-primary/10 dark:hover:bg-secondary
-                                    transition-colors duration-200"
+                                    transition-colors duration-100"
                             aria-label={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
                         >
                             {isSidebarOpen ? (
@@ -45,7 +45,7 @@ const Header = ({ isSidebarOpen, isMobile, onToggle }: HeaderProps) => {
                             <input
                                 type="search"
                                 placeholder="Search..."
-                                className="w-full px-4 py-2 rounded-lg bg-primary/10 dark:bg-secondary/30
+                                className="w-full px-4 py-2 rounded-lg bg-primary/10 dark:bg-primary/30
                                          text-primary dark:text-textLight
                                          focus:outline-none focus:ring-2 focus:ring-primary"
                             />

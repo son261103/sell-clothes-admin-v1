@@ -6,6 +6,14 @@ export * from './auth/authResponse';
 export * from './user/userRequest';
 export * from './user/userResponse';
 
+// permission
+export * from './permission/permissionRequest';
+export * from './permission/permissionResponse';
+
+// role
+export * from './role/roleRequest';
+export * from './role/roleResponse';
+
 // phân trang
 export interface PageResponse<T> {
     content: T[];

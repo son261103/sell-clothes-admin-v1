@@ -1,33 +1,27 @@
 import {useCallback, useEffect, useState} from 'react';
-import {Link} from "react-router-dom";
 import {
-    Download, UserPlus, Search, X, RefreshCw,
-    Filter, Users,
+    Download, Search, X, RefreshCw,
+    Filter, ClipboardList
 } from 'lucide-react';
 
-import UserDataTable from '../../components/user/user-list/UserDataTable.tsx';
-import {useUsers} from '../../hooks/userHooks';
+import PermissionDataTable from '../../components/permission/permission-list/PermissionDataTable';
+import {usePermissions, useGroupPermissions} from '../../hooks/permissionHooks';
 import type {
-    UserResponse,
-    UserStatus,
     PageRequest,
-    UserFilters
+    PermissionFilters,
+    PermissionResponse,
+    PageResponse
 } from '../../types';
-import UserEditPopup from "../../components/user/user-edit/UserEditPopup.tsx";
 
-// Type cho status filter
-type UserStatusFilter = UserStatus | '';
-
-const UserListPage = () => {
+const PermissionListPage = () => {
     // Pagination State
     const [currentPage, setCurrentPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
 
     // Filter and Search State
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedStatus, setSelectedStatus] = useState<UserStatusFilter>('');
-    const [selectedRole, setSelectedRole] = useState('');
-    const [sortBy, setSortBy] = useState('userId');
+    const [selectedGroup, setSelectedGroup] = useState('');
+    const [sortBy, setSortBy] = useState('permissionId');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     // UI State
@@ -35,19 +29,41 @@ const UserListPage = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isMobileView, setIsMobileView] = useState(false);
 
-
-    const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
-    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-
-
     // Hooks
     const {
-        usersPage,
+        permissionsPage,
+        permissionsList,
         isLoading,
-        fetchAllUsers,
-        deleteUser,
-        updateUserStatus
-    } = useUsers();
+        fetchAllPermissions,
+        deletePermission,
+    } = usePermissions();
+
+
+    const {
+        groupPermissionsList,
+        getPermissionsByGroup,
+        clearGroupPermissions,
+    } = useGroupPermissions();
+
+    // Get current permissions data
+    const getCurrentPermissionsData = useCallback((): PageResponse<PermissionResponse> => {
+        if (selectedGroup && groupPermissionsList.length > 0) {
+            const start = currentPage * pageSize;
+            const end = start + pageSize;
+
+            return {
+                content: groupPermissionsList.slice(start, end),
+                totalElements: groupPermissionsList.length,
+                totalPages: Math.ceil(groupPermissionsList.length / pageSize),
+                size: pageSize,
+                number: currentPage,
+                first: currentPage === 0,
+                last: end >= groupPermissionsList.length,
+                empty: groupPermissionsList.length === 0
+            };
+        }
+        return permissionsPage;
+    }, [selectedGroup, groupPermissionsList, currentPage, pageSize, permissionsPage]);
 
     // Fetch data với filters
     const fetchData = useCallback(async (page: number = currentPage) => {
@@ -57,35 +73,35 @@ const UserListPage = () => {
             sort: `${sortBy},${sortDirection}`
         };
 
-        const filters: UserFilters = {};
+        const filters: PermissionFilters = {
+            sortBy,
+            sortDirection
+        };
 
-        // Chỉ thêm các filter khi có giá trị
+        console.log('📝 Page: Fetching data with:', {pageRequest, filters});
+
         if (searchTerm?.trim()) {
             filters.search = searchTerm.trim();
         }
-        if (selectedStatus !== '') {
-            filters.status = selectedStatus;
-        }
-        if (selectedRole !== '') {
-            filters.role = selectedRole;
-        }
-        filters.sortBy = sortBy;
-        filters.sortDirection = sortDirection;
 
         try {
-            await fetchAllUsers(pageRequest, filters);
+            if (selectedGroup) {
+                await getPermissionsByGroup(selectedGroup);
+            } else {
+                await fetchAllPermissions(pageRequest, filters);
+            }
         } catch (error) {
-            console.error('Error fetching users:', error);
+            console.error('❌ Page: Error fetching permissions:', error);
         }
     }, [
         currentPage,
         pageSize,
-        selectedStatus,
-        selectedRole,
+        selectedGroup,
         searchTerm,
         sortBy,
         sortDirection,
-        fetchAllUsers
+        fetchAllPermissions,
+        getPermissionsByGroup
     ]);
 
     // Mobile view detection
@@ -103,6 +119,11 @@ const UserListPage = () => {
     useEffect(() => {
         const timer = setTimeout(() => {
             setCurrentPage(0);
+            if (selectedGroup) {
+                // Nếu đang filter theo group, clear group để search toàn bộ
+                setSelectedGroup('');
+                clearGroupPermissions();
+            }
             fetchData(0);
         }, 500);
 
@@ -127,15 +148,10 @@ const UserListPage = () => {
 
     // Fetch data khi filters thay đổi
     useEffect(() => {
-        fetchData();
-    }, [
-        currentPage,
-        pageSize,
-        selectedStatus,
-        selectedRole,
-        sortBy,
-        sortDirection
-    ]);
+        if (!searchTerm) {  // Chỉ fetch khi không đang search
+            fetchData();
+        }
+    }, [currentPage, pageSize, sortBy, sortDirection]);
 
     // Handlers
     const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,86 +166,29 @@ const UserListPage = () => {
         }, 500);
     };
 
-    const handleStatusChange = async (id: number, status: UserStatus) => {
-        const userToUpdate = usersPage.content.find(u => u.userId === id);
-        if (!userToUpdate) return;
-
-        const statusMessages = {
-            ACTIVE: 'kích hoạt',
-            LOCKED: 'khóa',
-            BANNER: 'cấm',
-            PENDING: 'chờ duyệt'
-        };
-
-        if (window.confirm(`Bạn có chắc chắn muốn ${statusMessages[status]} người dùng ${userToUpdate.fullName}?`)) {
-            await updateUserStatus(id, status);
-            await handleRefresh();
-        }
-    };
-
-    const handleDeleteUser = async (id: number) => {
-        const userToDelete = usersPage.content.find(u => u.userId === id);
-        if (!userToDelete) return;
-        await deleteUser(id);
+    const handleDeletePermission = async (id: number) => {
+        const permissions = getCurrentPermissionsData();
+        const permissionToDelete = permissions.content.find(p => p.permissionId === id);
+        if (!permissionToDelete) return;
+        await deletePermission(id);
         await handleRefresh();
     };
 
-    const handleEditUser = (user: UserResponse) => {
-        setSelectedUserId(user.userId);
-        setIsEditPopupOpen(true);
-    };
+    const handleFilterChange = async (type: string, value: string) => {
+        setCurrentPage(0);
 
-    const handleEditSuccess = () => {
-        handleRefresh();
-        setIsEditPopupOpen(false);
-        setSelectedUserId(null);
-    };
-
-    const handleFilterChange = async (type: 'status' | 'role', value: string) => {
-        setCurrentPage(0); // Reset về trang đầu tiên
-
-        if (type === 'status') {
-            setSelectedStatus(value as UserStatusFilter);
-        } else if (type === 'role') {
-            setSelectedRole(value);
-        }
-
-        // Fetch data ngay lập tức với filter mới
-        const pageRequest: PageRequest = {
-            page: 0,
-            size: pageSize,
-            sort: `${sortBy},${sortDirection}`
-        };
-
-        const filters: UserFilters = {
-            sortBy,
-            sortDirection
-        };
-
-        if (searchTerm?.trim()) {
-            filters.search = searchTerm.trim();
-        }
-
-        // Cập nhật filters dựa trên loại filter đang thay đổi
-        if (type === 'status') {
-            if (value !== '') {
-                filters.status = value as UserStatus;
-            }
-            filters.role = selectedRole; // Giữ nguyên role hiện tại
-        } else if (type === 'role') {
-            if (value !== '') {
-                filters.role = value;
-            }
-            if (selectedStatus !== '') {
-                filters.status = selectedStatus;
+        if (type === 'group') {
+            if (value) {
+                setSelectedGroup(value);
+                await getPermissionsByGroup(value);
+            } else {
+                setSelectedGroup('');
+                clearGroupPermissions();
+                await fetchData(0);
             }
         }
 
-        try {
-            await fetchAllUsers(pageRequest, filters);
-        } catch (error) {
-            console.error('Error applying filters:', error);
-        }
+        setIsFilterMenuOpen(false);
     };
 
     const handleSortChange = (sortField: string) => {
@@ -246,16 +205,52 @@ const UserListPage = () => {
         setCurrentPage(0);
     };
 
-    const clearFilters = () => {
-        setSearchTerm('');
-        setSelectedStatus('');
-        setSelectedRole('');
-        setSortBy('userId');
-        setSortDirection('desc');
-        setCurrentPage(0);
-        setIsFilterMenuOpen(false);
+    const handleEditPermission = (permission: PermissionResponse) => {
+        console.log('Edit permission:', permission.name);
     };
 
+    const clearFilters = () => {
+        setSearchTerm('');
+        setSelectedGroup('');
+        setSortBy('permissionId');
+        setSortDirection('desc');
+        setCurrentPage(0);
+        clearGroupPermissions();
+        setIsFilterMenuOpen(false);
+        fetchData(0);
+    };
+
+    // Render group options
+    const renderGroupOptions = () => {
+        const options = Array.from(new Set(
+            permissionsList
+                .map(permission => permission.groupName)
+                .filter(Boolean)
+        ));
+
+        return (
+            <>
+                <option value="">Tất cả nhóm quyền</option>
+                {options.map(group => (
+                    <option key={group} value={group}>
+                        {group}
+                    </option>
+                ))}
+            </>
+        );
+    };
+
+    const tableProps = {
+        permissions: getCurrentPermissionsData(),
+        onDeletePermission: handleDeletePermission,
+        onEditPermission: handleEditPermission,
+        isLoading,
+        onRefresh: handleRefresh,
+        isRefreshing,
+        isMobileView,
+        onPageChange: handlePageChange,
+        onPageSizeChange: handlePageSizeChange
+    };
 
     // Render filter menu
     const renderFilterMenu = () => (
@@ -275,46 +270,17 @@ const UserListPage = () => {
                 }}
             >
                 <div className="space-y-4">
-                    {/* Status Filter */}
+                    {/* Group Filter */}
                     <div>
                         <label className="text-sm font-medium mb-1 block text-textDark dark:text-textLight">
-                            Trạng thái
+                            Nhóm quyền
                         </label>
                         <select
                             className="bg-white w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
-                            value={selectedStatus}
-                            onChange={(e) => handleFilterChange('status', e.target.value)}
+                            value={selectedGroup}
+                            onChange={(e) => handleFilterChange('group', e.target.value)}
                         >
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="ACTIVE">Đang hoạt động</option>
-                            <option value="LOCKED">Đã khóa</option>
-                            <option value="BANNER">Đã cấm</option>
-                            <option value="PENDING">Chờ duyệt</option>
-                        </select>
-                    </div>
-
-                    {/* Role Filter */}
-                    <div>
-                        <label className=" text-sm font-medium mb-1 block text-textDark dark:text-textLight">
-                            Vai trò
-                        </label>
-                        <select
-                            className="bg-white w-full h-9 px-3 rounded-md border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-textDark dark:text-textLight text-sm"
-                            value={selectedRole}
-                            onChange={(e) => handleFilterChange('role', e.target.value)}
-                        >
-                            <option value="">Tất cả vai trò</option>
-                            {usersPage.content
-                                .flatMap(user => user.roles)
-                                .filter((role, index, self) =>
-                                    index === self.findIndex(r => r.name === role.name)
-                                )
-                                .map(role => (
-                                    <option key={role.roleId} value={role.name}>
-                                        {role.name}
-                                    </option>
-                                ))
-                            }
+                            {renderGroupOptions()}
                         </select>
                     </div>
 
@@ -328,11 +294,11 @@ const UserListPage = () => {
                             value={sortBy}
                             onChange={(e) => handleSortChange(e.target.value)}
                         >
-                            <option value="userId">ID</option>
-                            <option value="username">Tên đăng nhập</option>
-                            <option value="fullName">Họ tên</option>
-                            <option value="email">Email</option>
-                            <option value="lastLoginAt">Lần đăng nhập cuối</option>
+                            <option value="permissionId">ID</option>
+                            <option value="name">Tên quyền</option>
+                            <option value="codeName">Mã quyền</option>
+                            <option value="groupName">Nhóm quyền</option>
+                            <option value="createdAt">Ngày tạo</option>
                         </select>
                     </div>
 
@@ -356,21 +322,14 @@ const UserListPage = () => {
                 data-aos="fade-down"
             >
                 <div>
+
                     <h1 className="text-xl font-semibold text-textDark dark:text-textLight flex items-center gap-2">
-                        <Users className="w-6 h-6 text-primary"  /> Quản lý người dùng
+                        <ClipboardList className="w-6 h-6 text-primary" />
+                        Quản lý quyền
                     </h1>
                     <p className="text-sm text-secondary dark:text-highlight">
-                        Quản lý và giám sát tài khoản người dùng
+                        Quản lý và phân quyền hệ thống
                     </p>
-                </div>
-                <div className="w-full sm:w-auto">
-                    <Link
-                        to="/admin/users/add"
-                        className="inline-flex w-full sm:w-auto justify-center h-9 px-3 text-sm rounded-md bg-primary text-white hover:bg-primary/90 items-center gap-1.5"
-                    >
-                        <UserPlus className="h-3.5 w-3.5"/>
-                        <span>Thêm người dùng</span>
-                    </Link>
                 </div>
             </div>
 
@@ -385,7 +344,7 @@ const UserListPage = () => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Tìm kiếm người dùng..."
+                                placeholder="Tìm kiếm quyền..."
                                 className="w-full h-10 pl-10 pr-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-textDark dark:text-textLight focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
                                 value={searchTerm}
                                 onChange={handleSearchInput}
@@ -425,16 +384,16 @@ const UserListPage = () => {
                             >
                                 <Filter className="w-3.5 h-3.5"/>
                                 <span className="hidden sm:inline">Bộ lọc</span>
-                                {(selectedStatus || selectedRole) && (
+                                {selectedGroup && (
                                     <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
-                                        {[selectedStatus, selectedRole].filter(Boolean).length}
+                                        1
                                     </span>
                                 )}
                             </button>
 
                             <button
                                 onClick={() => {
-                                    console.log('Export users');
+                                    console.log('Export permissions');
                                 }}
                                 className="h-9 px-3 text-sm rounded-md border border-gray-200 dark:border-gray-700 text-textDark dark:text-textLight hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5"
                             >
@@ -449,39 +408,18 @@ const UserListPage = () => {
                 {isFilterMenuOpen && renderFilterMenu()}
             </div>
 
-            {/* User Table */}
+            {/* Permission Table */}
             <div className="relative" style={{zIndex: 10}}>
                 <div
                     className="bg-white dark:bg-secondary rounded-xl shadow-sm overflow-hidden"
                     data-aos="fade-up"
                     data-aos-delay="500"
                 >
-                    <UserDataTable
-                        users={usersPage}
-                        onDeleteUser={handleDeleteUser}
-                        onEditUser={handleEditUser}
-                        onStatusChange={handleStatusChange}
-                        isLoading={isLoading}
-                        onRefresh={handleRefresh}
-                        isRefreshing={isRefreshing}
-                        isMobileView={isMobileView}
-                        onPageChange={handlePageChange}
-                        onPageSizeChange={handlePageSizeChange}
-                    />
+                    <PermissionDataTable {...tableProps} />
                 </div>
             </div>
-
-            <UserEditPopup
-                userId={selectedUserId}
-                isOpen={isEditPopupOpen}
-                onClose={() => {
-                    setIsEditPopupOpen(false);
-                    setSelectedUserId(null);
-                }}
-                onUpdate={handleEditSuccess}
-            />
         </div>
     );
 };
 
-export default UserListPage;
+export default PermissionListPage;
