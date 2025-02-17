@@ -61,7 +61,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({ item, isOpen, position, onClose }
     const handleMouseLeave = () => {
         timeoutRef.current = window.setTimeout(() => {
             onClose();
-        }, 300); // Increased delay for smoother interaction
+        }, 300);
     };
 
     if (!isOpen || !item.children?.length) return null;
@@ -95,6 +95,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({ item, isOpen, position, onClose }
                             ? 'text-primary font-medium bg-primary/5 shadow-sm'
                             : 'text-textDark dark:text-textLight hover:text-primary'}`}
                     >
+                        <span className="text-gray-400 mr-2">─</span>
                         <div className={`min-w-[18px] flex items-center justify-center
                                       transition-transform duration-200
                                       group-hover:scale-110
@@ -122,6 +123,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({ item, isOpen, position, onClose }
                                         ? 'text-primary font-medium bg-primary/5 shadow-sm'
                                         : 'text-textDark dark:text-textLight hover:text-primary'}`}
                                 >
+                                    <span className="text-gray-400 mr-2">└─</span>
                                     <div className={`min-w-[18px] flex items-center justify-center
                                                    transition-transform duration-200
                                                    group-hover:scale-110
@@ -196,7 +198,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
         if (!isOpen && !isMobile) {
             timeoutRef.current = window.setTimeout(() => {
                 setShowPopup(false);
-            }, 300); // Increased delay for smoother interaction
+            }, 300);
         }
     };
 
@@ -219,6 +221,13 @@ const MenuItem: React.FC<MenuItemProps> = ({
         }
     };
 
+    // Helper function to get level indicator
+    const getLevelIndicator = (level: number) => {
+        if (level === 0) return '';
+        if (level === 1) return '─';
+        return '└─';
+    };
+
     return (
         <div
             ref={itemRef}
@@ -238,6 +247,9 @@ const MenuItem: React.FC<MenuItemProps> = ({
                     ? 'text-primary font-medium'
                     : 'text-textDark dark:text-textLight hover:text-primary'}`}
             >
+                {level > 0 && (
+                    <span className="text-gray-400 mr-2">{getLevelIndicator(level)}</span>
+                )}
                 <div className={`min-w-[18px] flex items-center justify-center
                                transition-all duration-200
                                group-hover:scale-110

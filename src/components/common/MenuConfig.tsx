@@ -6,14 +6,14 @@ import {
     ClipboardList,
     UserPlus,
     BadgeCheck,
-    Key,
-    Package,
-    Tag,
-    BarChart3,
+    KeyRound,
+    Package2,
+    Tags,
+    BarChartHorizontal,
     PieChart,
-    BellRing,
-    MessageSquare,
-    Sliders,
+    Bell,
+    Mail,
+    SlidersHorizontal,
     LifeBuoy,
 } from 'lucide-react';
 
@@ -26,36 +26,36 @@ export interface IMenuItem {
 
 export const menuItems: IMenuItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Bảng điều khiển',
         path: '/admin/dashboard',
         icon: <LayoutDashboard className="w-5 h-5"/>,
     },
     {
-        title: 'Access Control',
+        title: 'Kiểm soát truy cập',
         icon: <ShieldCheck className="w-5 h-5"/>,
         children: [
             {
-                title: 'Roles',
+                title: 'Vai trò',
                 icon: <BadgeCheck className="w-4 h-4"/>,
                 children: [
                     {
-                        title: 'Role List',
+                        title: 'Danh sách vai trò',
                         path: '/admin/access-control/roles/list',
                         icon: <ClipboardList className="w-4 h-4"/>,
                     },
                     {
-                        title: 'Add Role',
+                        title: 'Thêm vai trò',
                         path: '/admin/access-control/roles/add',
                         icon: <UserPlus className="w-4 h-4"/>,
                     },
                 ]
             },
             {
-                title: 'Permissions',
-                icon: <Key className="w-4 h-4"/>,
+                title: 'Quyền hạn',
+                icon: <KeyRound className="w-4 h-4"/>,
                 children: [
                     {
-                        title: 'Permission List',
+                        title: 'Danh sách quyền',
                         path: '/admin/access-control/permissions/list',
                         icon: <ClipboardList className="w-4 h-4"/>,
                     },
@@ -64,76 +64,76 @@ export const menuItems: IMenuItem[] = [
         ]
     },
     {
-        title: 'User Management',
+        title: 'Quản lý người dùng',
         icon: <Users className="w-5 h-5"/>,
         children: [
             {
-                title: 'User List',
+                title: 'Danh sách người dùng',
                 path: '/admin/users/list',
                 icon: <Users className="w-4 h-4"/>,
             },
             {
-                title: 'Add User',
+                title: 'Thêm người dùng',
                 path: '/admin/users/add',
                 icon: <UserPlus className="w-4 h-4"/>,
             },
         ]
     },
     {
-        title: 'Products',
-        icon: <Package className="w-5 h-5"/>,
+        title: 'Sản phẩm',
+        icon: <Package2 className="w-5 h-5"/>,
         children: [
             {
-                title: 'Product List',
+                title: 'Danh sách sản phẩm',
                 path: '/admin/products',
-                icon: <Package className="w-4 h-4"/>,
+                icon: <Package2 className="w-4 h-4"/>,
             },
             {
-                title: 'Categories',
+                title: 'Danh mục',
                 path: '/admin/products/categories',
-                icon: <Tag className="w-4 h-4"/>,
+                icon: <Tags className="w-4 h-4"/>,
             },
         ]
     },
     {
-        title: 'Reports',
-        icon: <BarChart3 className="w-5 h-5"/>,
+        title: 'Báo cáo',
+        icon: <BarChartHorizontal className="w-5 h-5"/>,
         children: [
             {
-                title: 'Sales Report',
+                title: 'Báo cáo doanh số',
                 path: '/admin/reports/sales',
                 icon: <PieChart className="w-4 h-4"/>,
             },
             {
-                title: 'Analytics',
+                title: 'Phân tích',
                 path: '/admin/reports/analytics',
-                icon: <BarChart3 className="w-4 h-4"/>,
+                icon: <BarChartHorizontal className="w-4 h-4"/>,
             },
         ]
     },
     {
-        title: 'Notifications',
-        icon: <BellRing className="w-5 h-5"/>,
+        title: 'Thông báo',
+        icon: <Bell className="w-5 h-5"/>,
         children: [
             {
-                title: 'System Alerts',
+                title: 'Cảnh báo hệ thống',
                 path: '/admin/notifications/alerts',
-                icon: <BellRing className="w-4 h-4"/>,
+                icon: <Bell className="w-4 h-4"/>,
             },
             {
-                title: 'Messages',
+                title: 'Tin nhắn',
                 path: '/admin/notifications/messages',
-                icon: <MessageSquare className="w-4 h-4"/>,
+                icon: <Mail className="w-4 h-4"/>,
             },
         ]
     },
     {
-        title: 'Settings',
+        title: 'Cài đặt',
         path: '/admin/settings',
-        icon: <Sliders className="w-5 h-5"/>,
+        icon: <SlidersHorizontal className="w-5 h-5"/>,
     },
     {
-        title: 'Help',
+        title: 'Trợ giúp',
         path: '/admin/help',
         icon: <LifeBuoy className="w-5 h-5"/>,
     },
