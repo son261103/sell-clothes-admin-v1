@@ -10,7 +10,8 @@ import type {
     TokenResponse,
     RegisterResponse,
     SendOtpRequest,
-    OtpVerificationRequest
+    OtpVerificationRequest, UserProfile,
+    ChangePasswordRequest, ChangePasswordOtpRequest, UpdateProfileRequest
 } from '../../../types';
 
 interface AuthState {
@@ -22,6 +23,9 @@ interface AuthState {
     registrationData: RegisterResponse | null;
     otpVerified: boolean;
     otpSent: boolean;
+    profile: UserProfile | null;
+    profileLoading: boolean;
+    profileError: string | null;
 }
 
 const initialState: AuthState = {
@@ -33,11 +37,14 @@ const initialState: AuthState = {
     registrationData: null,
     otpVerified: false,
     otpSent: false,
+    profile: null,
+    profileLoading: false,
+    profileError: null,
 };
 
 export const login = createAsyncThunk(
     'auth/login',
-    async (credentials: LoginRequest, { rejectWithValue }) => {
+    async (credentials: LoginRequest, {rejectWithValue}) => {
         try {
             const response = await AuthService.login(credentials);
 
@@ -107,6 +114,56 @@ export const logout = createAsyncThunk(
             return response;
         } catch (error) {
             return rejectWithValue(error);
+        }
+    }
+);
+
+// -------------------------------------------
+// Thêm các async thunks mới
+export const changePassword = createAsyncThunk(
+    'auth/changePassword',
+    async (data: ChangePasswordRequest, {rejectWithValue}) => {
+        try {
+            const response = await AuthService.changePassword(data);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : 'Password change failed');
+        }
+    }
+);
+
+export const changePasswordWithOtp = createAsyncThunk(
+    'auth/changePasswordWithOtp',
+    async (data: ChangePasswordOtpRequest, {rejectWithValue}) => {
+        try {
+            const response = await AuthService.changePasswordWithOtp(data);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : 'Password change failed');
+        }
+    }
+);
+
+export const fetchProfile = createAsyncThunk(
+    'auth/fetchProfile',
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await AuthService.getProfile();
+            return response;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch profile');
+        }
+    }
+);
+
+export const updateProfile = createAsyncThunk(
+    'auth/updateProfile',
+    async (data: UpdateProfileRequest, {rejectWithValue}) => {
+        try {
+            const response = await AuthService.updateProfile(data);
+            return response;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : 'Failed to update profile');
         }
     }
 );
@@ -259,7 +316,76 @@ const authSlice = createSlice({
                     ...initialState,
                     error: action.payload ? String(action.payload) : 'Logout failed'
                 };
-            });
+            })
+        // Change Password
+        builder
+            .addCase(changePassword.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(changePassword.fulfilled, (state) => {
+                state.isLoading = false;
+                state.error = null;
+            })
+            .addCase(changePassword.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string || 'Password change failed';
+            })
+
+            // Change Password with OTP
+            .addCase(changePasswordWithOtp.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(changePasswordWithOtp.fulfilled, (state) => {
+                state.isLoading = false;
+                state.error = null;
+            })
+            .addCase(changePasswordWithOtp.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string || 'Password change failed';
+            })
+
+            // Fetch Profile
+            .addCase(fetchProfile.pending, (state) => {
+                state.profileLoading = true;
+                state.profileError = null;
+            })
+            .addCase(fetchProfile.fulfilled, (state, action) => {
+                state.profileLoading = false;
+                state.profile = action.payload;
+                state.profileError = null;
+            })
+            .addCase(fetchProfile.rejected, (state, action) => {
+                state.profileLoading = false;
+                state.profileError = action.payload as string || 'Failed to fetch profile';
+            })
+
+            // Update Profile
+            .addCase(updateProfile.pending, (state) => {
+                state.profileLoading = true;
+                state.profileError = null;
+            })
+            .addCase(updateProfile.fulfilled, (state, action) => {
+                state.profileLoading = false;
+                state.profile = action.payload;
+                state.profileError = null;
+                // Cập nhật một số thông tin trong user nếu cần
+                if (state.user) {
+                    state.user = {
+                        ...state.user,
+                        fullName: action.payload.fullName,
+                        email: action.payload.email,
+                    };
+                }
+            })
+            .addCase(updateProfile.rejected, (state, action) => {
+                state.profileLoading = false;
+                state.profileError = action.payload as string || 'Failed to update profile';
+            })
+
+
+        ;
     }
 });
 

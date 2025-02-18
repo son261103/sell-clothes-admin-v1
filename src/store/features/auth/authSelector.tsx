@@ -11,7 +11,10 @@ export const selectRegistrationSuccess = createSelector(selectAuthState, (auth) 
 export const selectRegistrationData = createSelector(selectAuthState, (auth) => auth.registrationData);
 export const selectOtpVerified = createSelector(selectAuthState, (auth) => auth.otpVerified);
 export const selectOtpSent = createSelector(selectAuthState, (auth) => auth.otpSent);
-
+// authSelector.tsx
+export const selectProfile = (state: RootState) => state.auth.profile;
+export const selectProfileLoading = (state: RootState) => state.auth.profileLoading;
+export const selectProfileError = (state: RootState) => state.auth.profileError;
 // Compound selectors (memoized)
 export const selectUserRoles = createSelector(
     selectUser,

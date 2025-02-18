@@ -3,6 +3,7 @@ import type {UserEditTabType} from './UserEditTabs';
 import UserForm from "../user-list/UserForm";
 import {useAvatar} from '../../../hooks/avatarHooks';
 import toast from 'react-hot-toast';
+import UserRole from "./UserRole.tsx";
 
 interface UserEditContentProps {
     activeTab: UserEditTabType;
@@ -80,7 +81,23 @@ const UserEditContent = ({activeTab, user, onSubmit, isLoading}: UserEditContent
                     Không tìm thấy thông tin người dùng
                 </div>
             );
-        case 'password':
+        case 'permissions':
+            return user ? (
+                <UserRole
+                    user={user}
+                    onUpdateRoles={async (roles) => {
+                        await onSubmit({
+                            ...user,
+                            roles: roles
+                        });
+                    }}
+                    isLoading={isLoading}
+                />
+            ) : (
+                <div className="text-center text-secondary dark:text-highlight">
+                    Không tìm thấy thông tin người dùng
+                </div>
+            );
         case 'billing':
         case 'notifications':
             return (

@@ -1,3 +1,5 @@
+import {RoleResponse} from "../role/roleResponse.tsx";
+
 export type UserStatus = 'ACTIVE' | 'LOCKED' | 'BANNER' | 'PENDING';
 
 export interface UserFilters {
@@ -29,6 +31,7 @@ export interface UserUpdateRequest {
     phone?: string;
     avatar?: string;
     status?: UserStatus;
+    roles?: RoleResponse[];
 }
 
 export interface UserStatusUpdateRequest {
@@ -44,4 +47,45 @@ export interface UserData {
     avatar?: string;
     password?: string;
     status?: UserStatus;
+}
+
+// Trong types/index.ts hoặc types/user.ts
+
+export interface ChangePasswordRequest {
+    oldPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface ChangePasswordOtpRequest {
+    loginId: string;
+    oldPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+    otp: string;
+}
+
+export interface UserProfile {
+    userId: number;
+    username: string;
+    email: string;
+    fullName: string;
+    phone: string;
+    avatar: string;
+    status: string;
+    createdAt: string;
+    lastLoginAt: string;
+    roles: string[];
+    permissions: string[];
+    address: string;
+    dateOfBirth: string;
+    gender: string;
+}
+
+export interface UpdateProfileRequest {
+    fullName: string;
+    phone: string;
+    address: string;
+    dateOfBirth: string;
+    gender: string;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, RefreshCw, Minimize2, Maximize2 } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { RoleResponse } from "../../types";
 
 interface RoleEditHeaderProps {
@@ -18,8 +18,6 @@ const RoleEditHeader: React.FC<RoleEditHeaderProps> = ({
                                                            isRefreshing,
                                                            isMobileView,
                                                            role,
-                                                           isCompact,
-                                                           onToggleCompact
                                                        }) => {
     const handleButtonClick = (e: React.MouseEvent, action: () => void) => {
         e.stopPropagation();
@@ -54,15 +52,6 @@ const RoleEditHeader: React.FC<RoleEditHeaderProps> = ({
                         className={`h-3.5 w-3.5 transition-transform duration-500 ${isRefreshing ? 'animate-spin' : ''}`}
                     />
                     <span className={isMobileView ? 'hidden' : ''}>Làm mới</span>
-                </button>
-                <button
-                    onClick={(e) => handleButtonClick(e, onToggleCompact)}
-                    className="h-9 w-9 flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700
-                             text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700
-                             transition-colors duration-200"
-                    title={isCompact ? "Mở rộng" : "Thu gọn"}
-                >
-                    {isCompact ? <Maximize2 className="w-4 h-4"/> : <Minimize2 className="w-4 h-4"/>}
                 </button>
                 <button
                     className="h-9 w-9 flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700

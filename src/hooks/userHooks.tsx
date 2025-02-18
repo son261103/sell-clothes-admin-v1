@@ -258,23 +258,30 @@ export const useCurrentUser = () => {
     const { isLoading, error } = useAppSelector(selectUserOperationStatus);
 
     const handleFetchUserById = useCallback(async (id: number) => {
+        console.log(`[useCurrentUser] ccccc Fetching user by ID: ${id}`);
         try {
             await dispatch(fetchUserById(id)).unwrap();
+            console.log(`[useCurrentUser]  cccc   Successfully fetched user with ID: ${id}`);
             return true;
-        } catch {
+        } catch (err) {
+            console.error(`[useCurrentUser] Failed to fetch user with ID: ${id}`, err);
             return false;
         }
     }, [dispatch]);
 
     const handleClearCurrentUser = useCallback(() => {
+        console.log("[useCurrentUser] Clearing current user");
         dispatch(clearCurrentUser());
     }, [dispatch]);
 
     const handleUpdateLastLogin = useCallback(async (userId: number) => {
+        console.log(`[useCurrentUser] Updating last login for user ID: ${userId}`);
         try {
             await dispatch(updateLastLogin(userId)).unwrap();
+            console.log(`[useCurrentUser] Successfully updated last login for user ID: ${userId}`);
             return true;
-        } catch {
+        } catch (err) {
+            console.error(`[useCurrentUser] Failed to update last login for user ID: ${userId}`, err);
             return false;
         }
     }, [dispatch]);

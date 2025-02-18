@@ -1,6 +1,6 @@
-import {UserCircle, CreditCard, KeyRound, Bell, LucideIcon} from 'lucide-react';
+import {UserCircle, CreditCard, KeyRound, Bell, LucideIcon, Shield} from 'lucide-react';
 
-type UserEditTabType = 'profile' | 'billing' | 'password' | 'notifications';
+type UserEditTabType = 'profile' | 'billing' | 'password' | 'notifications' | 'permissions';
 
 interface UserEditTabDefinition {
     id: UserEditTabType;
@@ -10,6 +10,7 @@ interface UserEditTabDefinition {
 
 const USER_EDIT_TABS: UserEditTabDefinition[] = [
     {id: 'profile', label: 'Hồ sơ', icon: UserCircle},
+    {id: 'permissions', label: 'Phân quyền', icon: Shield},
     {id: 'billing', label: 'Thanh toán', icon: CreditCard},
     {id: 'password', label: 'Mật khẩu', icon: KeyRound},
     {id: 'notifications', label: 'Thông báo', icon: Bell}
