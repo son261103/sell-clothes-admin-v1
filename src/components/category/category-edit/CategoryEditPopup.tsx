@@ -1,37 +1,44 @@
 import {useState, useEffect, useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {useUsers, useUserFinder} from '@/hooks/userHooks.tsx';
-import type {UserResponse, UserUpdateRequest} from '@/types';
+import {useCategoryFinder, useCategories} from '@/hooks/categoryHooks.tsx';
+import type {CategoryResponse, CategoryUpdateRequest} from '@/types';
 import toast from 'react-hot-toast';
 import {motion, AnimatePresence} from 'framer-motion';
 import {modalAnimationVariants} from '@/constants/animationVariants.tsx';
-import UserEditHeader from './UserEditHeader.tsx';
-import UserEditTabs, {UserEditTabType} from './UserEditTabs.tsx';
-import UserEditContent from './UserEditContent.tsx';
-import UserEditLoading from './UserEditLoading.tsx';
+import CategoryEditHeader from './CategoryEditHeader.tsx';
+import CategoryEditTabs, {CategoryEditTabType} from './CategoryEditTabs.tsx';
+import CategoryEditContent from './CategoryEditContent.tsx';
+import CategoryEditLoading from './CategoryEditLoading.tsx';
 
-interface UserEditPopupProps {
-    userId: number | null;
+interface CategoryEditPopupProps {
+    categoryId: number | null;
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void;
+    onSubcategoryUpdate: (parentCategoryId: number) => Promise<void>;
 }
 
-const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) => {
+const CategoryEditPopup = ({
+                               categoryId,
+                               isOpen,
+                               onClose,
+                               onUpdate,
+                               onSubcategoryUpdate
+                           }: CategoryEditPopupProps) => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<UserEditTabType>('profile');
-    const [user, setUser] = useState<UserResponse | null>(null);
+    const [activeTab, setActiveTab] = useState<CategoryEditTabType>('general');
+    const [category, setCategory] = useState<CategoryResponse | null>(null);
     const [isMobileView, setIsMobileView] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [isClosing, setIsClosing] = useState(false);
 
-    const {updateUser, isLoading: isUpdating} = useUsers();
+    const {updateParentCategory, isLoading: isUpdating} = useCategories();
     const {
-        fetchUserById,
+        fetchCategoryById,
         isLoading: isFetching,
-        foundById: fetchedUser
-    } = useUserFinder(userId || undefined);
+        foundById: fetchedCategory
+    } = useCategoryFinder(categoryId || undefined);
 
     const isLoading = isUpdating || isFetching;
 
@@ -43,32 +50,34 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
     }, []);
 
     useEffect(() => {
-        if (isOpen && userId && isInitialLoad) {
-            const loadUser = async () => {
+        if (isOpen && categoryId && isInitialLoad) {
+            const loadCategory = async () => {
                 try {
-                    await fetchUserById(userId);
+                    await fetchCategoryById(categoryId);
+                    // Update subcategory counts when category is loaded
+                    await onSubcategoryUpdate(categoryId);
                 } catch (error) {
-                    console.error('Error loading user:', error);
-                    toast.error('Đã xảy ra lỗi khi tải thông tin người dùng');
+                    console.error('Error loading category:', error);
+                    toast.error('Đã xảy ra lỗi khi tải thông tin danh mục');
                     onClose();
                 }
             };
-            loadUser();
+            loadCategory();
             setIsInitialLoad(false);
         }
 
         if (!isOpen) {
             setIsInitialLoad(true);
-            setUser(null);
-            setActiveTab('profile');
+            setCategory(null);
+            setActiveTab('general');
         }
-    }, [isOpen, userId, fetchUserById, onClose, isInitialLoad]);
+    }, [isOpen, categoryId, fetchCategoryById, onClose, isInitialLoad, onSubcategoryUpdate]);
 
     useEffect(() => {
-        if (fetchedUser) {
-            setUser(fetchedUser);
+        if (fetchedCategory) {
+            setCategory(fetchedCategory);
         }
-    }, [fetchedUser]);
+    }, [fetchedCategory]);
 
     useEffect(() => {
         if (isOpen) {
@@ -82,43 +91,47 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
     }, [isOpen]);
 
     const handleRefresh = async () => {
-        if (!userId) return;
+        if (!categoryId) return;
 
         setIsRefreshing(true);
         const toastId = toast.loading('Đang làm mới dữ liệu...');
 
         try {
-            await fetchUserById(userId);
+            await fetchCategoryById(categoryId);
+            // Update subcategory counts after refresh
+            await onSubcategoryUpdate(categoryId);
             toast.success('Đã làm mới dữ liệu thành công', {id: toastId});
         } catch (error) {
-            console.error('Error refreshing user data:', error);
-            toast.error('Không thể làm mới dữ liệu người dùng', {id: toastId});
+            console.error('Error refreshing category data:', error);
+            toast.error('Không thể làm mới dữ liệu danh mục', {id: toastId});
         } finally {
             setTimeout(() => setIsRefreshing(false), 500);
         }
     };
 
-    const handleSubmit = async (data: UserUpdateRequest) => {
-        if (!userId) {
-            toast.error('ID người dùng không hợp lệ');
+    const handleSubmit = async (data: CategoryUpdateRequest) => {
+        if (!categoryId) {
+            toast.error('ID danh mục không hợp lệ');
             return;
         }
 
         const toastId = toast.loading('Đang cập nhật...');
 
         try {
-            const success = await updateUser(userId, data);
+            const success = await updateParentCategory(categoryId, data);
             if (success) {
-                toast.success('Cập nhật người dùng thành công', {id: toastId});
+                // Update subcategory counts after successful update
+                await onSubcategoryUpdate(categoryId);
+                toast.success('Cập nhật danh mục thành công', {id: toastId});
                 onUpdate();
                 handleClose();
             } else {
-                toast.error('Không thể cập nhật người dùng', {id: toastId});
+                toast.error('Không thể cập nhật danh mục', {id: toastId});
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi không mong muốn';
             toast.error(errorMessage, {id: toastId});
-            console.error('Lỗi khi cập nhật người dùng:', error);
+            console.error('Lỗi khi cập nhật danh mục:', error);
         }
     };
 
@@ -127,7 +140,7 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
         setTimeout(() => {
             setIsClosing(false);
             onClose();
-            navigate('/admin/users/list');
+            navigate('/admin/categories/list');
         }, 300);
     }, [onClose, navigate]);
 
@@ -162,7 +175,7 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
                             onClick={(e) => e.stopPropagation()}
                         >
                             <motion.div variants={modalAnimationVariants.content}>
-                                <UserEditHeader
+                                <CategoryEditHeader
                                     onClose={handleClose}
                                     onRefresh={handleRefresh}
                                     isRefreshing={isRefreshing}
@@ -171,7 +184,7 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
                             </motion.div>
 
                             <motion.div variants={modalAnimationVariants.content}>
-                                <UserEditTabs
+                                <CategoryEditTabs
                                     activeTab={activeTab}
                                     onTabChange={setActiveTab}
                                     isMobileView={isMobileView}
@@ -191,7 +204,7 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
                                             animate="visible"
                                             exit="exit"
                                         >
-                                            <UserEditLoading/>
+                                            <CategoryEditLoading/>
                                         </motion.div>
                                     ) : (
                                         <motion.div
@@ -202,11 +215,12 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
                                             animate="visible"
                                             exit="exit"
                                         >
-                                            <UserEditContent
+                                            <CategoryEditContent
                                                 activeTab={activeTab}
-                                                user={user}
+                                                category={category}
                                                 onSubmit={handleSubmit}
                                                 isLoading={isLoading}
+                                                onSubcategoryUpdate={onSubcategoryUpdate}
                                             />
                                         </motion.div>
                                     )}
@@ -220,4 +234,4 @@ const UserEditPopup = ({userId, isOpen, onClose, onUpdate}: UserEditPopupProps) 
     );
 };
 
-export default UserEditPopup;
+export default CategoryEditPopup;

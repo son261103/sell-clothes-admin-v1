@@ -15,6 +15,7 @@ import {
     Mail,
     SlidersHorizontal,
     LifeBuoy,
+    Folder, List, Plus,
 } from 'lucide-react';
 
 export interface IMenuItem {
@@ -77,6 +78,22 @@ export const menuItems: IMenuItem[] = [
                 path: '/admin/users/add',
                 icon: <UserPlus className="w-4 h-4"/>,
             },
+        ]
+    },
+    {
+        title: 'Quản lý danh mục',
+        icon: <Folder className="w-5 h-5"/>,
+        children: [
+            {
+                title: 'Danh sách danh mục',
+                path: '/admin/categories/list',
+                icon: <List className="w-4 h-4"/>,
+            },
+            {
+                title: 'Thêm danh mục',
+                path: '/admin/categories/add',
+                icon: <Plus className="w-4 h-4"/>,
+            }
         ]
     },
     {

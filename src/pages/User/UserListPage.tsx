@@ -12,7 +12,7 @@ import type {
     UserStatus,
     PageRequest,
     UserFilters
-} from '../../types';
+} from '@/types';
 import UserEditPopup from "../../components/user/user-edit/UserEditPopup.tsx";
 
 // Type cho status filter

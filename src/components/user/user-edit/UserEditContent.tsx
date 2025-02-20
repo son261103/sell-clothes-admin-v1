@@ -1,7 +1,7 @@
 import type {UserResponse, UserUpdateRequest, UserData} from '../../../types';
 import type {UserEditTabType} from './UserEditTabs';
 import UserForm from "../user-list/UserForm";
-import {useAvatar} from '../../../hooks/avatarHooks';
+import {useAvatar} from '@/hooks/avatarHooks.tsx';
 import toast from 'react-hot-toast';
 import UserRole from "./UserRole.tsx";
 

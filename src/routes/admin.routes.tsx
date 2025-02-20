@@ -6,6 +6,7 @@ import {productRoutes} from "./modules/product.routes.tsx";
 import {settingRoutes} from "./modules/setting.routes.tsx";
 import {permissionRoutes} from "./modules/permission.routes.tsx";
 import {roleRoutes} from "./modules/role.routes.tsx";
+import {categoryRoutes} from "@/routes/modules/category.routes.tsx";
 
 export const adminRoutes: RouteObjectWithMeta = {
     path: '/admin',
@@ -19,6 +20,9 @@ export const adminRoutes: RouteObjectWithMeta = {
         ...productRoutes,
         ...permissionRoutes,
         ...roleRoutes,
-        ...settingRoutes
+        ...categoryRoutes,
+
+        ...settingRoutes,
+
     ]
 };

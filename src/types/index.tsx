@@ -14,6 +14,10 @@ export * from './permission/permissionResponse';
 export * from './role/roleRequest';
 export * from './role/roleResponse';
 
+// category
+export * from './category/categoryRequest';
+export * from './category/categoryResponse';
+
 // phân trang
 export interface PageResponse<T> {
     content: T[];

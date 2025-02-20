@@ -4,6 +4,7 @@ import userReducer from './features/user/userSlice.tsx';
 import avatarReducer from './features/user/avatarSlice.tsx';
 import permissionReducer from './features/permission/permissionSlice.tsx';
 import roleReducer from './features/role/roleSlice.tsx';
+import categoryReducer from './features/category/categorySlice.tsx';
 
 export const store = configureStore({
     reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
         avatar: avatarReducer,
         permission: permissionReducer,
         role: roleReducer,
+        category: categoryReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
