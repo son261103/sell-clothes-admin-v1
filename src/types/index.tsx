@@ -18,6 +18,11 @@ export * from './role/roleResponse';
 export * from './category/categoryRequest';
 export * from './category/categoryResponse';
 
+// brand
+export * from './brand/BrandRequest';
+export * from './brand/BrandResponse';
+
+
 // phân trang
 export interface PageResponse<T> {
     content: T[];

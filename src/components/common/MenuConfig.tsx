@@ -81,6 +81,22 @@ export const menuItems: IMenuItem[] = [
         ]
     },
     {
+        title: 'Thương hiệu',
+        icon: <Tags className="w-5 h-5"/>,
+        children: [
+            {
+                title: 'Danh sách thương hiệu',
+                path: '/admin/brands/list',
+                icon: <List className="w-4 h-4"/>,
+            },
+            {
+                title: 'Thêm thương hiệu',
+                path: '/admin/brands/add',
+                icon: <Plus className="w-4 h-4"/>,
+            }
+        ]
+    },
+    {
         title: 'Quản lý danh mục',
         icon: <Folder className="w-5 h-5"/>,
         children: [

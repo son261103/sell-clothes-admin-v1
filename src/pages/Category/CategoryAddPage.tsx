@@ -8,7 +8,7 @@ import {toast} from 'react-hot-toast';
 
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import {useCategories, useSubCategories, useCategoryFinder} from '../../hooks/categoryHooks';
-import type {CategoryCreateRequest} from '../../types';
+import type {CategoryCreateRequest} from '@/types';
 import {generateSlug} from '@/utils/stringUtils';
 
 interface ValidationError {
