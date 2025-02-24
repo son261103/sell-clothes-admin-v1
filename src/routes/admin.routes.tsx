@@ -24,6 +24,7 @@ export const adminRoutes: RouteObjectWithMeta = {
         ...categoryRoutes,
         ...brandRoutes,
 
+
         ...settingRoutes,
 
     ]

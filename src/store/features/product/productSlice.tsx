@@ -8,7 +8,7 @@ import type {
     ProductPageRequest,
     ProductHierarchyResponse,
     ProductFilters
-} from '../../../types';
+} from '@/types';
 
 interface ProductState {
     products: ProductPageResponse;
@@ -248,6 +248,21 @@ const productSlice = createSlice({
                 state.error = action.payload as string;
             })
 
+            // Fetch Product By Slug
+            .addCase(fetchProductBySlug.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchProductBySlug.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.currentProduct = action.payload;
+                state.error = null;
+            })
+            .addCase(fetchProductBySlug.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
             // Create Product
             .addCase(createProduct.pending, (state) => {
                 state.isLoading = true;
@@ -264,6 +279,7 @@ const productSlice = createSlice({
                 state.products.totalElements += 1;
                 state.products.totalPages = Math.ceil(state.products.totalElements / state.products.size);
                 state.products.empty = state.products.content.length === 0;
+                state.currentProduct = action.payload;
                 state.error = null;
             })
             .addCase(createProduct.rejected, (state, action) => {

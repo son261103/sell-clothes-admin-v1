@@ -1,5 +1,6 @@
 import React from 'react';
-import { Edit, XCircle, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Edit, XCircle, CheckCircle, Trash2, Eye } from 'lucide-react';
 import type { ProductResponse } from '@/types';
 
 interface ProductActionButtonsProps {
@@ -7,7 +8,6 @@ interface ProductActionButtonsProps {
     onEdit: (product: ProductResponse) => void;
     onDelete: (product: ProductResponse) => void;
     onStatusChange: (id: number) => void;
-    onRefreshImage?: () => void;
 }
 
 const ActionButton = ({onClick, icon: Icon, color, title}: {
@@ -29,15 +29,37 @@ const ActionButton = ({onClick, icon: Icon, color, title}: {
     </button>
 );
 
+const ActionLink = ({to, icon: Icon, color, title}: {
+    to: string;
+    icon: typeof Edit;
+    color: string;
+    title: string;
+}) => (
+    <Link
+        to={to}
+        onClick={(e) => e.stopPropagation()}
+        className={`p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 ${color} 
+            transition-colors duration-200 hover:scale-105 transform`}
+        title={title}
+    >
+        <Icon className="w-3.5 h-3.5"/>
+    </Link>
+);
+
 const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
                                                                        product,
                                                                        onEdit,
                                                                        onDelete,
-                                                                       onStatusChange,
-                                                                       onRefreshImage
+                                                                       onStatusChange
                                                                    }) => {
     return (
         <div className="flex items-center gap-1.5">
+            <ActionLink
+                to={`/admin/products/detail/${product.productId}`}
+                icon={Eye}
+                color="text-indigo-600 dark:text-indigo-400"
+                title="Xem chi tiết"
+            />
             <ActionButton
                 onClick={() => onEdit(product)}
                 icon={Edit}
@@ -58,14 +80,6 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
                 color="text-red-600 dark:text-red-400"
                 title="Xóa"
             />
-            {product.thumbnail && onRefreshImage && (
-                <ActionButton
-                    onClick={onRefreshImage}
-                    icon={RefreshCw}
-                    color="text-gray-600 dark:text-gray-400"
-                    title="Làm mới ảnh"
-                />
-            )}
         </div>
     );
 };

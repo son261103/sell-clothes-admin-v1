@@ -84,59 +84,62 @@ const PopupMenu: React.FC<PopupMenuProps> = ({ item, isOpen, position, onClose }
                 transitionProperty: 'transform, opacity'
             }}
         >
-            {item.children.map((child) => (
-                <div key={child.path ?? child.title} className="px-1.5">
-                    <Link
-                        to={child.path || '#'}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-md
-                                  transition-all duration-200 text-sm group relative
-                                  hover:bg-primary/5 dark:hover:bg-primary/10
-                                  ${location.pathname === child.path
-                            ? 'text-primary font-medium bg-primary/5 shadow-sm'
-                            : 'text-textDark dark:text-textLight hover:text-primary'}`}
-                    >
-                        <span className="text-gray-400 mr-2">─</span>
-                        <div className={`min-w-[18px] flex items-center justify-center
-                                      transition-transform duration-200
-                                      group-hover:scale-110
-                                      ${location.pathname === child.path ? 'text-primary' :
-                            'group-hover:text-primary'}`}>
-                            {child.icon}
-                        </div>
-                        <span className="flex-1 transition-colors duration-200">{child.title}</span>
-                        {child.children && (
-                            <ChevronDown className="w-4 h-4 opacity-50 transition-transform
-                                                  duration-200 group-hover:opacity-100" />
-                        )}
-                    </Link>
+            {item.children.map((child) => {
+                const isChildActive = child.path === location.pathname ||
+                    (child.path === '/admin/products/detail/:productId' && location.pathname.startsWith('/admin/products/detail/'));
+                return (
+                    <div key={child.path ?? child.title} className="px-1.5">
+                        <Link
+                            to={child.path || '#'}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-md
+                                      transition-all duration-200 text-sm group relative
+                                      hover:bg-primary/5 dark:hover:bg-primary/10
+                                      ${isChildActive
+                                ? 'text-primary font-medium bg-primary/5 shadow-sm'
+                                : 'text-textDark dark:text-textLight hover:text-primary'}`}
+                        >
+                            <span className="text-gray-400 mr-2">─</span>
+                            <div className={`min-w-[18px] flex items-center justify-center
+                                          transition-transform duration-200
+                                          group-hover:scale-110
+                                          ${isChildActive ? 'text-primary' : 'group-hover:text-primary'}`}>
+                                {child.icon}
+                            </div>
+                            <span className="flex-1 transition-colors duration-200">{child.title}</span>
+                            {child.children && (
+                                <ChevronDown className="w-4 h-4 opacity-50 transition-transform
+                                                      duration-200 group-hover:opacity-100" />
+                            )}
+                        </Link>
 
-                    {child.children && (
-                        <div className="pl-4 mt-1 space-y-0.5">
-                            {child.children.map((grandChild) => (
-                                <Link
-                                    key={grandChild.path ?? grandChild.title}
-                                    to={grandChild.path || '#'}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
-                                              transition-all duration-200 group relative
-                                              hover:bg-primary/5 dark:hover:bg-primary/10
-                                              ${location.pathname === grandChild.path
-                                        ? 'text-primary font-medium bg-primary/5 shadow-sm'
-                                        : 'text-textDark dark:text-textLight hover:text-primary'}`}
-                                >
-                                    <div className={`min-w-[18px] flex items-center justify-center
-                                                   transition-transform duration-200
-                                                   group-hover:scale-110
-                                                   ${location.pathname === grandChild.path ? 'text-primary' :
-                                        'group-hover:text-primary'}`}>
-                                        {grandChild.icon}
-                                    </div>
-                                    <span className="transition-colors duration-200">{grandChild.title}</span>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            ))}
+                        {child.children && (
+                            <div className="pl-4 mt-1 space-y-0.5">
+                                {child.children.map((grandChild) => (
+                                    <Link
+                                        key={grandChild.path ?? grandChild.title}
+                                        to={grandChild.path || '#'}
+                                        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                                                  transition-all duration-200 group relative
+                                                  hover:bg-primary/5 dark:hover:bg-primary/10
+                                                  ${location.pathname === grandChild.path
+                                            ? 'text-primary font-medium bg-primary/5 shadow-sm'
+                                            : 'text-textDark dark:text-textLight hover:text-primary'}`}
+                                    >
+                                        <div className={`min-w-[18px] flex items-center justify-center
+                                                       transition-transform duration-200
+                                                       group-hover:scale-110
+                                                       ${location.pathname === grandChild.path ? 'text-primary' :
+                                            'group-hover:text-primary'}`}>
+                                            {grandChild.icon}
+                                        </div>
+                                        <span className="transition-colors duration-200">{grandChild.title}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 };
@@ -155,10 +158,13 @@ const MenuItem: React.FC<MenuItemProps> = ({
     const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
     const timeoutRef = useRef<number>();
 
+    // Kiểm tra xem item có khớp với đường dẫn hiện tại không
     const isActive = item.path ? location.pathname === item.path : false;
     const hasChildren = Boolean(item.children?.length);
+    // Kiểm tra xem có bất kỳ child nào khớp với đường dẫn hiện tại không (bao gồm route động)
     const isChildActive = hasChildren && item.children?.some(
         child => child.path === location.pathname ||
+            (child.path === '/admin/products/detail/:productId' && location.pathname.startsWith('/admin/products/detail/')) ||
             child.children?.some(grandChild => grandChild.path === location.pathname)
     );
 
@@ -166,6 +172,8 @@ const MenuItem: React.FC<MenuItemProps> = ({
         if (isChildActive) {
             setIsSubMenuOpen(true);
             onToggleSubmenu?.(true);
+        } else {
+            setIsSubMenuOpen(false); // Đóng submenu nếu không active
         }
     }, [isChildActive, onToggleSubmenu]);
 
