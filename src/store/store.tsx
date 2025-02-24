@@ -7,7 +7,7 @@ import roleReducer from './features/role/roleSlice.tsx';
 import categoryReducer from './features/category/categorySlice.tsx';
 import brandReducer from './features/brand/brandSlice.tsx'
 import brandLogoReducer from './features/brand/brandLogoSlice.tsx'
-
+import productReducer from './features/product/productSlice.tsx'
 
 export const store = configureStore({
     reducer: {
@@ -19,6 +19,7 @@ export const store = configureStore({
         category: categoryReducer,
         brand: brandReducer,
         brandLogo: brandLogoReducer,
+        product: productReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

@@ -1,25 +1,36 @@
+import { lazy } from 'react';
 import { RouteObjectWithMeta } from '../types';
+import { Outlet } from 'react-router-dom';
+
+// Lazy load components
+const ProductListPage = lazy(() => import('@/pages/Product/ProductListPage.tsx'));
+const ProductAddPage = lazy(() => import('@/pages/Product/ProductAddPage.tsx'));
 
 export const productRoutes: RouteObjectWithMeta[] = [
     {
         path: 'products',
-        element: <div>Products Management Page</div>,
+        element: <Outlet />,
+        children: [
+            {
+                path: 'list',
+                element: <ProductListPage />,
+                meta: {
+                    title: 'Product Management',
+                    requiredPermissions: ['VIEW_PRODUCT']
+                }
+            },
+            {
+                path: 'add',
+                element: <ProductAddPage />,
+                meta: {
+                    title: 'Add Product',
+                    requiredPermissions: ['CREATE_PRODUCT']
+                }
+            },
+        ],
         meta: {
-            requiredPermissions: ['VIEW_PRODUCT']
-        }
-    },
-    {
-        path: 'products/add',
-        element: <div>Add Product Page</div>,
-        meta: {
-            requiredPermissions: ['CREATE_PRODUCT']
-        }
-    },
-    {
-        path: 'products/categories',
-        element: <div>Categories Management Page</div>,
-        meta: {
-            requiredPermissions: ['VIEW_CATEGORY']
+            title: 'Product Management',
+            requiredPermissions: ['VIEW_PRODUCT'],
         }
     }
 ];

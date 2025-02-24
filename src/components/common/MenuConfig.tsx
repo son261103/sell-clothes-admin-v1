@@ -15,7 +15,7 @@ import {
     Mail,
     SlidersHorizontal,
     LifeBuoy,
-    Folder, List, Plus,
+    Folder, List, Plus, PlusCircle,
 } from 'lucide-react';
 
 export interface IMenuItem {
@@ -118,14 +118,14 @@ export const menuItems: IMenuItem[] = [
         children: [
             {
                 title: 'Danh sách sản phẩm',
-                path: '/admin/products',
+                path: '/admin/products/list',
                 icon: <Package2 className="w-4 h-4"/>,
             },
             {
-                title: 'Danh mục',
-                path: '/admin/products/categories',
-                icon: <Tags className="w-4 h-4"/>,
-            },
+                title: 'Thêm sản phẩm',
+                path: '/admin/products/add',
+                icon: <PlusCircle className="w-4 h-4"/>,
+            }
         ]
     },
     {

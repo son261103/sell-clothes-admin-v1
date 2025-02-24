@@ -22,6 +22,13 @@ export * from './category/categoryResponse';
 export * from './brand/BrandRequest';
 export * from './brand/BrandResponse';
 
+// product
+export * from './product/productRequest';
+export * from './product/productResponse';
+
+// product image
+export * from './product/productImageRequest';
+export * from './product/productImageResponse';
 
 // phân trang
 export interface PageResponse<T> {
