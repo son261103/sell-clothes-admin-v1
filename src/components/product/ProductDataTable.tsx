@@ -194,7 +194,6 @@ const ProductDataTable: React.FC<ProductDataTableProps> = ({
                                         onEdit={onEditProduct}
                                         onDelete={handleDeleteClick}
                                         onStatusChange={onStatusChange}
-                                        onRefreshImage={refreshImage}
                                     />
                                 </div>
                             </td>

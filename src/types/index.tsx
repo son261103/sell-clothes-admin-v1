@@ -30,6 +30,10 @@ export * from './product/productResponse';
 export * from './product/productImageRequest';
 export * from './product/productImageResponse';
 
+// product variant
+export * from './product/productVariantRequest';
+export * from './product/productVariantResponse';
+
 // phân trang
 export interface PageResponse<T> {
     content: T[];
