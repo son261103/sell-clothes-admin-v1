@@ -12,7 +12,10 @@ import brandLogoReducer from './features/brand/brandLogoSlice.tsx';
 import productReducer from './features/product/productSlice.tsx';
 import productImageReducer from './features/product/productImageSlice.tsx';
 import productVariantReducer from './features/product/productVariantSlice.tsx';
-
+import orderVariantReducer from './features/order/orderSlice.tsx';
+import userAddressReducer from './features/userAddress/userAddressSlice.tsx';
+import paymentReducer from './features/payment/paymentSlice.tsx';
+import orderItemReducer from './features/orderItem/orderItemSlice.tsx';
 // Persist config riêng cho từng slice nếu cần tùy chỉnh
 const productPersistConfig = {
     key: 'product',
@@ -38,6 +41,10 @@ const persistedBrandLogoReducer = persistReducer({key: 'brandLogo', storage}, br
 const persistedProductReducer = persistReducer(productPersistConfig, productReducer);
 const persistedProductImageReducer = persistReducer(productImagePersistConfig, productImageReducer);
 const persistedProductVariantReducer = persistReducer({key: 'productVariant', storage}, productVariantReducer);
+const persistedOrderVariantReducer = persistReducer({key: 'orderVariant', storage}, orderVariantReducer);
+const persistedUserAddressReducer = persistReducer({key: 'userAddress', storage}, userAddressReducer);
+const persistedPaymentReducer = persistReducer({key: 'payment', storage}, paymentReducer);
+const persistedOrderItemReducer = persistReducer({key: 'orderItem', storage}, orderItemReducer);
 
 export const store = configureStore({
     reducer: {
@@ -52,6 +59,10 @@ export const store = configureStore({
         product: persistedProductReducer,
         productImage: persistedProductImageReducer,
         productVariant: persistedProductVariantReducer,
+        order: persistedOrderVariantReducer,
+        userAddress: persistedUserAddressReducer,
+        payment: persistedPaymentReducer,
+        orderItem: persistedOrderItemReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

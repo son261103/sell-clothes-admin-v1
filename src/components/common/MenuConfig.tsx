@@ -138,6 +138,17 @@ export const menuItems: IMenuItem[] = [
         ]
     },
     {
+        title: 'Quản lý đơn hàng',
+        icon: <ClipboardList className="w-5 h-5" />,
+        children: [
+            {
+                title: 'Danh sách đơn hàng',
+                path: '/admin/orders/list',
+                icon: <List className="w-4 h-4" />,
+            },
+        ]
+    },
+    {
         title: 'Báo cáo',
         icon: <BarChartHorizontal className="w-5 h-5" />,
         children: [

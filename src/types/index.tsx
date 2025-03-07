@@ -34,6 +34,19 @@ export * from './product/productImageResponse';
 export * from './product/productVariantRequest';
 export * from './product/productVariantResponse';
 
+// order
+export * from './order/order.types';
+
+
+// user address
+export * from './userAddress/user.address.types'
+
+// payment
+export * from './payment/payment.types'
+
+// order item
+export * from './orderItem/order.item.types'
+
 // phân trang
 export interface PageResponse<T> {
     content: T[];
