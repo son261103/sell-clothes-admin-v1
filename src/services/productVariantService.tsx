@@ -37,32 +37,32 @@ class ProductVariantService {
         };
     }
 
+    async getVariantsByProductId(productId: number): Promise<ApiResponse<ProductVariantResponse[]>> {
+        try {
+            const response = await apiConfig.get<ProductVariantResponse[]>(
+                PRODUCT_VARIANT_ENDPOINTS.GET_BY_PRODUCT(productId)
+            );
+            console.log('API Response for getVariantsByProductId:', response.data); // Thêm log
+            return ProductVariantService.wrapResponse(response.data);
+        } catch (err) {
+            throw ProductVariantService.createErrorResponse(err);
+        }
+    }
+
+    // Các phương thức khác giữ nguyên
     async getFilteredVariants(
         pageRequest: ProductVariantPageRequest = { page: 0, size: 10, sort: 'variantId,desc' },
         filters: ProductVariantFilters = {}
     ): Promise<ApiResponse<ProductVariantPageResponse>> {
         try {
             const params = new URLSearchParams();
-
-            // Pagination params
             params.append('page', String(pageRequest.page ?? 0));
             params.append('size', String(pageRequest.size ?? 10));
             params.append('sort', pageRequest.sort || 'variantId,desc');
-
-            // Filter params
-            if (filters.productId !== undefined) {
-                params.append('productId', String(filters.productId));
-            }
-            if (filters.size !== undefined) {
-                params.append('size', filters.size);
-            }
-            if (filters.color !== undefined) {
-                params.append('color', filters.color);
-            }
-            if (filters.status !== undefined) {
-                params.append('status', String(filters.status));
-            }
-
+            if (filters.productId !== undefined) params.append('productId', String(filters.productId));
+            if (filters.size !== undefined) params.append('size', filters.size);
+            if (filters.color !== undefined) params.append('color', filters.color);
+            if (filters.status !== undefined) params.append('status', String(filters.status));
             const response = await apiConfig.get<ProductVariantPageResponse>(
                 `${PRODUCT_VARIANT_ENDPOINTS.GET_FILTERED}?${params.toString()}`
             );
@@ -87,18 +87,11 @@ class ProductVariantService {
         try {
             const formData = new FormData();
             formData.append('variant', JSON.stringify(variantData));
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
+            if (imageFile) formData.append('image', imageFile);
             const response = await apiConfig.post<ProductVariantResponse>(
                 PRODUCT_VARIANT_ENDPOINTS.CREATE,
                 formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             return ProductVariantService.wrapResponse(response.data);
         } catch (err) {
@@ -110,20 +103,11 @@ class ProductVariantService {
         try {
             const formData = new FormData();
             formData.append('variants', JSON.stringify(bulkData));
-
-            // Append each color image to the formData
-            Object.entries(colorImages).forEach(([color, file]) => {
-                formData.append(color, file);
-            });
-
+            Object.entries(colorImages).forEach(([color, file]) => formData.append(color, file));
             const response = await apiConfig.post<ProductVariantResponse[]>(
                 PRODUCT_VARIANT_ENDPOINTS.BULK_CREATE,
                 formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             return ProductVariantService.wrapResponse(response.data);
         } catch (err) {
@@ -135,18 +119,11 @@ class ProductVariantService {
         try {
             const formData = new FormData();
             formData.append('variant', JSON.stringify(variantData));
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
+            if (imageFile) formData.append('image', imageFile);
             const response = await apiConfig.put<ProductVariantResponse>(
                 PRODUCT_VARIANT_ENDPOINTS.EDIT(id),
                 formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             return ProductVariantService.wrapResponse(response.data);
         } catch (err) {
@@ -178,17 +155,6 @@ class ProductVariantService {
         try {
             const response = await apiConfig.get<ProductVariantResponse>(
                 PRODUCT_VARIANT_ENDPOINTS.GET_BY_SKU(sku)
-            );
-            return ProductVariantService.wrapResponse(response.data);
-        } catch (err) {
-            throw ProductVariantService.createErrorResponse(err);
-        }
-    }
-
-    async getVariantsByProductId(productId: number): Promise<ApiResponse<ProductVariantResponse[]>> {
-        try {
-            const response = await apiConfig.get<ProductVariantResponse[]>(
-                PRODUCT_VARIANT_ENDPOINTS.GET_BY_PRODUCT(productId)
             );
             return ProductVariantService.wrapResponse(response.data);
         } catch (err) {
@@ -255,9 +221,7 @@ class ProductVariantService {
         try {
             const response = await apiConfig.get<boolean>(
                 PRODUCT_VARIANT_ENDPOINTS.CHECK_AVAILABILITY,
-                {
-                    params: { productId, size, color }
-                }
+                { params: { productId, size, color } }
             );
             return ProductVariantService.wrapResponse(response.data);
         } catch (err) {

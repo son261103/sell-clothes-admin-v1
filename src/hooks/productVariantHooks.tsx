@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks'; // Đảm bảo đường dẫn đúng
 import {
     getFilteredVariants,
     fetchVariantById,
@@ -20,7 +20,7 @@ import {
     getAvailableColors,
     clearError,
     clearCurrentVariant
-} from '../store/features/product/productVariantSlice';
+} from '../store/features/product/productVariantSlice'; // Đảm bảo đường dẫn đúng
 import {
     selectVariantsPage,
     selectVariantsList,
@@ -43,7 +43,7 @@ import {
     selectStockBySize,
     selectStockByColor,
     selectVariantOperationStatus,
-} from '../store/features/product/productVariantSelectors';
+} from '../store/features/product/productVariantSelectors'; // Đảm bảo đường dẫn đúng
 import type {
     ProductVariantCreateRequest,
     ProductVariantUpdateRequest,
@@ -228,33 +228,40 @@ export const useVariantStock = () => {
 // Hook for variant filtering by product
 export const useVariantsByProduct = (productId: number) => {
     const dispatch = useAppDispatch();
-    const { isLoading, error } = useAppSelector(selectVariantOperationStatus);
-    const variantsByProduct = useAppSelector(state => selectVariantsByProductId(state, productId));
+    const variantsByProduct = useAppSelector((state) => selectVariantsByProductId(state, productId));
+    const isLoading = useAppSelector((state) => state.productVariant.isLoading);
+    const error = useAppSelector((state) => state.productVariant.error);
 
-    const handleFetchVariantsByProduct = useCallback(async () => {
+    const fetchVariantsByProduct = useCallback(async () => {
         try {
-            await dispatch(fetchVariantsByProductId(productId)).unwrap();
+            console.log(`Fetching variants for productId: ${productId}`);
+            const result = await dispatch(fetchVariantsByProductId(productId)).unwrap();
+            console.log('Fetch variants by product result:', result);
             return true;
-        } catch {
+        } catch (err) {
+            console.error('Error fetching variants by product:', err);
             return false;
         }
     }, [dispatch, productId]);
 
-    const handleFetchActiveVariantsByProduct = useCallback(async () => {
+    const fetchActiveVariantsByProduct = useCallback(async () => {
         try {
-            await dispatch(fetchActiveVariantsByProductId(productId)).unwrap();
+            console.log(`Fetching active variants for productId: ${productId}`);
+            const result = await dispatch(fetchActiveVariantsByProductId(productId)).unwrap();
+            console.log('Fetch active variants by product result:', result);
             return true;
-        } catch {
+        } catch (err) {
+            console.error('Error fetching active variants by product:', err);
             return false;
         }
     }, [dispatch, productId]);
 
     return {
-        variantsByProduct,
+        variantsByProduct: variantsByProduct || [],
         isLoading,
         error,
-        fetchVariantsByProduct: handleFetchVariantsByProduct,
-        fetchActiveVariantsByProduct: handleFetchActiveVariantsByProduct
+        fetchVariantsByProduct,
+        fetchActiveVariantsByProduct
     };
 };
 

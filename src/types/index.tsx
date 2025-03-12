@@ -50,6 +50,8 @@ export * from './orderItem/order.item.types'
 // coupon
 export * from './orderCoupon/coupon.types'
 
+// product excel
+export * from './productExel/product.excel.types'
 
 // phân trang
 export interface PageResponse<T> {

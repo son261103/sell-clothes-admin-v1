@@ -1,8 +1,6 @@
 import { createSelector } from 'reselect';
 import type { RootState } from '../../store';
-import type {
-    ProductVariantFilters,
-} from '@/types';
+import type { ProductVariantFilters } from '@/types';
 
 // Basic selectors
 export const selectVariantState = (state: RootState) => state.productVariant;
@@ -73,10 +71,10 @@ export const selectVariantBySku = createSelector(
     (variants, sku) => variants.find(variant => variant.sku === sku) || null
 );
 
-// Product-based selectors
+// Product-based selectors (Đã sửa)
 export const selectVariantsByProductId = createSelector(
-    [selectVariantsList, (_, productId: number) => productId],
-    (variants, productId) => variants.filter(variant => variant.product.productId === productId)
+    [selectVariantState, (_, productId: number) => productId],
+    (state, productId) => state.variantsByProduct.filter(variant => variant.product?.productId === productId)
 );
 
 export const selectActiveVariantsByProductId = createSelector(

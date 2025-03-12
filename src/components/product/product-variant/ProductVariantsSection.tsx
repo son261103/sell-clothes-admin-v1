@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import { Package2, Plus, CheckCircle, XCircle, Edit, Trash2, ArrowDownUp } from 'lucide-react';
-import {
-    ProductVariantResponse,
-    ProductVariantCreateRequest,
-    ProductVariantUpdateRequest
-} from '@/types';
+import { ProductVariantResponse, ProductVariantCreateRequest, ProductVariantUpdateRequest } from '@/types';
+
+// Hàm chuyển mã màu thành tên màu (đơn giản hóa)
+const getColorNameFromHex = (hex: string): string => {
+    const colorMap: { [key: string]: string } = {
+        '#000000': 'Black',
+        '#FFFFFF': 'White',
+        '#FF0000': 'Red',
+        '#00FF00': 'Green',
+        '#0000FF': 'Blue',
+        '#FFFF00': 'Yellow',
+        '#FFA500': 'Orange',
+        '#800080': 'Purple',
+        '#808080': 'Gray',
+        '#FFC107': 'Amber',
+    };
+    return colorMap[hex.toUpperCase()] || hex; // Nếu không có trong map, trả về mã hex
+};
 
 interface ProductVariantsSectionProps {
     variants: ProductVariantResponse[];
@@ -29,7 +42,8 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                                                                                   handleDeleteVariant,
                                                                                   productId
                                                                               }) => {
-    // States
+    console.log('Rendering ProductVariantsSection với variants:', variants);
+
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedVariant, setSelectedVariant] = useState<ProductVariantResponse | null>(null);
@@ -42,21 +56,17 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
     });
     const [imageFile, setImageFile] = useState<File | undefined>(undefined);
     const [formData, setFormData] = useState({
-        color: '',
+        color: '#000000', // Mặc định là màu đen
         size: '',
         sku: '',
         stockQuantity: 0,
         status: true,
-        newColor: '',
         newSize: ''
     });
     const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
-    // Extract unique colors and sizes from all variants
-    const uniqueColors = Array.from(new Set(variants.map(v => v.color)));
     const uniqueSizes = Array.from(new Set(variants.map(v => v.size)));
 
-    // Sorting function for all variants
     const sortedVariants = [...variants].sort((a, b) => {
         let comparison = 0;
         switch (sortConfig.key) {
@@ -78,13 +88,12 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
 
-    // Form Validation
     const validateForm = () => {
         const errors: { [key: string]: string } = {};
-        const color = formData.color === 'new' ? formData.newColor : formData.color;
+        const color = formData.color;
         const size = formData.size === 'new' ? formData.newSize : formData.size;
 
-        if (!color) errors.color = 'Vui lòng chọn hoặc nhập màu sắc';
+        if (!color) errors.color = 'Vui lòng chọn màu sắc';
         if (!size) errors.size = 'Vui lòng chọn hoặc nhập kích thước';
         if (!formData.sku) errors.sku = 'Vui lòng nhập SKU';
         if (formData.stockQuantity < 0) errors.stockQuantity = 'Số lượng tồn kho không thể âm';
@@ -93,7 +102,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         return Object.keys(errors).length === 0;
     };
 
-    // Handlers
     const handleSort = (key: 'color' | 'size' | 'stock' | 'sku') => {
         setSortConfig(prevConfig => ({
             key,
@@ -106,16 +114,21 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         setImageFile(file);
     };
 
+    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const hexColor = e.target.value;
+        setFormData({ ...formData, color: hexColor });
+    };
+
     const handleSubmitAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) return;
 
-        const color = formData.color === 'new' ? formData.newColor : formData.color;
+        const colorName = getColorNameFromHex(formData.color);
         const size = formData.size === 'new' ? formData.newSize : formData.size;
 
         const variantData: ProductVariantCreateRequest = {
             productId,
-            color,
+            color: colorName, // Sử dụng tên màu thay vì mã hex
             size,
             sku: formData.sku,
             stockQuantity: formData.stockQuantity,
@@ -135,11 +148,11 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         e.preventDefault();
         if (!selectedVariant || !validateForm()) return;
 
-        const color = formData.color === 'new' ? formData.newColor : formData.color;
+        const colorName = getColorNameFromHex(formData.color);
         const size = formData.size === 'new' ? formData.newSize : formData.size;
 
         const updateData: ProductVariantUpdateRequest = {
-            color,
+            color: colorName,
             size,
             sku: formData.sku,
             stockQuantity: formData.stockQuantity,
@@ -157,12 +170,11 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
 
     const resetForm = () => {
         setFormData({
-            color: '',
+            color: '#000000',
             size: '',
             sku: '',
             stockQuantity: 0,
             status: true,
-            newColor: '',
             newSize: ''
         });
         setImageFile(undefined);
@@ -173,12 +185,11 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
     const startEdit = (variant: ProductVariantResponse) => {
         setSelectedVariant(variant);
         setFormData({
-            color: variant.color,
+            color: variant.color.startsWith('#') ? variant.color : '#000000', // Nếu màu là mã hex thì giữ, nếu không thì mặc định
             size: variant.size,
             sku: variant.sku,
             stockQuantity: variant.stockQuantity,
             status: variant.status,
-            newColor: '',
             newSize: ''
         });
         setIsEditModalOpen(true);
@@ -210,35 +221,21 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
     const renderVariantForm = (isEdit: boolean = false) => (
         <form onSubmit={isEdit ? handleSubmitEdit : handleSubmitAdd} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* Color Field */}
                 <div className="form-control">
                     <label className="label">
                         <span className="label-text text-textDark dark:text-textLight">Màu sắc</span>
                     </label>
-                    <select
-                        className="select select-bordered w-full bg-white dark:bg-gray-800 text-textDark dark:text-textLight border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary focus:border-primary"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    >
-                        <option value="">Chọn màu</option>
-                        {uniqueColors.map(color => (
-                            <option key={color} value={color}>{color}</option>
-                        ))}
-                        <option value="new">+ Thêm màu mới</option>
-                    </select>
-                    {formData.color === 'new' && (
+                    <div className="flex items-center gap-2">
                         <input
-                            type="text"
-                            className="mt-2 input input-bordered w-full bg-white dark:bg-gray-800 text-textDark dark:text-textLight border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary focus:border-primary"
-                            value={formData.newColor}
-                            onChange={(e) => setFormData({ ...formData, newColor: e.target.value })}
-                            placeholder="Nhập màu mới"
+                            type="color"
+                            className="w-12 h-12 rounded-md border border-gray-200 dark:border-gray-700"
+                            value={formData.color}
+                            onChange={handleColorChange}
                         />
-                    )}
+                        <span className="text-textDark dark:text-textLight">{getColorNameFromHex(formData.color)}</span>
+                    </div>
                     {formErrors.color && <p className="text-sm text-red-600 mt-1">{formErrors.color}</p>}
                 </div>
-
-                {/* Size Field */}
                 <div className="form-control">
                     <label className="label">
                         <span className="label-text text-textDark dark:text-textLight">Kích thước</span>
@@ -266,8 +263,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     {formErrors.size && <p className="text-sm text-red-600 mt-1">{formErrors.size}</p>}
                 </div>
             </div>
-
-            {/* SKU Field */}
             <div className="form-control">
                 <label className="label">
                     <span className="label-text text-textDark dark:text-textLight">SKU</span>
@@ -281,8 +276,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                 />
                 {formErrors.sku && <p className="text-sm text-red-600 mt-1">{formErrors.sku}</p>}
             </div>
-
-            {/* Stock Quantity Field */}
             <div className="form-control">
                 <label className="label">
                     <span className="label-text text-textDark dark:text-textLight">Số lượng tồn kho</span>
@@ -296,8 +289,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                 />
                 {formErrors.stockQuantity && <p className="text-sm text-red-600 mt-1">{formErrors.stockQuantity}</p>}
             </div>
-
-            {/* Image Field */}
             <div className="form-control">
                 <label className="label">
                     <span className="label-text text-textDark dark:text-textLight">Hình ảnh</span>
@@ -309,13 +300,9 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     accept="image/*"
                 />
             </div>
-
-            {/* Form Submission Error */}
             {formErrors.submit && (
                 <div className="text-sm text-red-600 text-center">{formErrors.submit}</div>
             )}
-
-            {/* Modal Actions */}
             <div className="modal-action flex justify-end gap-2">
                 <button
                     type="button"
@@ -328,17 +315,13 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                 >
                     Hủy
                 </button>
-                <button
-                    type="submit"
-                    className="btn bg-primary hover:bg-primary/90 text-white"
-                >
+                <button type="submit" className="btn bg-primary hover:bg-primary/90 text-white">
                     {isEdit ? 'Cập nhật' : 'Thêm mới'}
                 </button>
             </div>
         </form>
     );
 
-    // Loading State
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-8 bg-white dark:bg-secondary rounded-xl shadow-lg">
@@ -350,7 +333,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         );
     }
 
-    // Error State
     if (error) {
         return (
             <div className="rounded-xl bg-white dark:bg-secondary p-4 text-red-600 dark:text-red-400 shadow-lg">
@@ -362,11 +344,9 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         );
     }
 
-    // Main Render
     return (
         <div className="rounded-xl bg-white dark:bg-secondary shadow-lg overflow-hidden">
             <div className="space-y-6 p-6">
-                {/* Header */}
                 <div className="flex items-center justify-between">
                     <h2 className="flex items-center gap-2 text-lg font-semibold text-textDark dark:text-textLight">
                         <Package2 className="h-5 w-5 text-primary" /> Tất cả biến thể sản phẩm ({variants.length})
@@ -392,8 +372,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                         </button>
                     </div>
                 </div>
-
-                {/* Variants Table */}
                 {sortedVariants.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse table-fixed">
@@ -417,7 +395,7 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                                         <div className="flex items-center gap-2 text-textDark dark:text-textLight">
                                             <div
                                                 className="h-4 w-4 rounded-full border border-gray-200 dark:border-gray-700"
-                                                style={{ backgroundColor: variant.color }}
+                                                style={{ backgroundColor: variant.color.startsWith('#') ? variant.color : getColorNameFromHex(variant.color) }}
                                             />
                                             {variant.color}
                                         </div>
@@ -435,24 +413,24 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                                     </td>
                                     <td className="py-2 px-4 border-r border-gray-200 dark:border-gray-700">
                                         <div className="flex justify-center">
-                                                <span className={getStatusBadgeClass(variant.status)}>
-                                                    <button
-                                                        onClick={() => toggleVariantStatus(variant.variantId)}
-                                                        className="flex items-center gap-1"
-                                                    >
-                                                        {variant.status ? (
-                                                            <>
-                                                                <CheckCircle className="w-3 h-3" />
-                                                                <span>Hoạt động</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <XCircle className="w-3 h-3" />
-                                                                <span>Vô hiệu</span>
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                </span>
+                                            <span className={getStatusBadgeClass(variant.status)}>
+                                                <button
+                                                    onClick={() => toggleVariantStatus(variant.variantId)}
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    {variant.status ? (
+                                                        <>
+                                                            <CheckCircle className="w-3 h-3" />
+                                                            <span>Hoạt động</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle className="w-3 h-3" />
+                                                            <span>Vô hiệu</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </span>
                                         </div>
                                     </td>
                                     <td className="py-2 px-4">
@@ -483,8 +461,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     </div>
                 )}
             </div>
-
-            {/* Add Modal */}
             <dialog className={`modal ${isAddModalOpen ? 'modal-open' : ''}`}>
                 <div className="modal-box w-11/12 max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <h3 className="mb-4 text-lg font-bold text-textDark dark:text-textLight">Thêm biến thể mới</h3>
@@ -494,8 +470,6 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     <button onClick={() => setIsAddModalOpen(false)}>Đóng</button>
                 </form>
             </dialog>
-
-            {/* Edit Modal */}
             <dialog className={`modal ${isEditModalOpen ? 'modal-open' : ''}`}>
                 <div className="modal-box w-11/12 max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <h3 className="mb-4 text-lg font-bold text-textDark dark:text-textLight">Chỉnh sửa biến thể</h3>

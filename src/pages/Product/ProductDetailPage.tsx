@@ -1,23 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CircleArrowLeft, Package2 } from 'lucide-react';
-
-// Product Hooks
 import { useProductFinder, useProducts } from '@/hooks/productHooks';
-
-// Image Hooks
 import { useProductImages, useImageOrder, useImageHierarchy } from '@/hooks/productImageHooks';
-
-// Variant Hooks
 import { useVariants, useVariantStock, useVariantsByProduct, useVariantAttributes, useVariantHierarchy } from '@/hooks/productVariantHooks';
-
-// Components
 import { ImageViewer } from '../../components/product/product-detail/ImageViewer';
 import { ProductImagesSection } from '../../components/product/product-detail/ProductImagesSection';
 import { ProductDetailsSection } from '../../components/product/product-detail/ProductDetailsSection';
 import { ProductVariantsSection } from '../../components/product/product-variant/ProductVariantsSection';
-
-// Types
 import { ProductVariantCreateRequest, ProductVariantUpdateRequest } from '@/types';
 
 const ProductDetailPage: React.FC = () => {
@@ -31,16 +21,11 @@ const ProductDetailPage: React.FC = () => {
         { imageUrl: string; isPrimary?: boolean; displayOrder?: number; imageId: number }[]
     >([]);
 
-    // Product Hooks
     const { foundById: product, isLoading: isLoadingProduct, error: productError, fetchProductById } = useProductFinder(parsedProductId);
     const { updateProduct } = useProducts();
-
-    // Image Hooks
     const { isLoading: isLoadingImages, error: imagesError, fetchImages, uploadImages, updateImageFile, deleteImage } = useProductImages(parsedProductId);
     const { orderedImages } = useImageOrder(parsedProductId);
     const { fetchHierarchy: fetchImgHierarchy } = useImageHierarchy();
-
-    // Variant Hooks
     const { createVariant, updateVariant, deleteVariant, toggleVariantStatus, error: variantsError, isLoading: isLoadingVariants } = useVariants();
     const { updateStockQuantity } = useVariantStock();
     const { variantsByProduct, fetchVariantsByProduct, isLoading: isLoadingProductVariants, error: productVariantsError } = useVariantsByProduct(parsedProductId);
@@ -49,7 +34,11 @@ const ProductDetailPage: React.FC = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!parsedProductId || isNaN(parsedProductId)) return;
+            if (!parsedProductId || isNaN(parsedProductId)) {
+                console.log('Invalid productId:', parsedProductId);
+                return;
+            }
+            console.log('Bắt đầu fetch dữ liệu cho productId:', parsedProductId);
             try {
                 if (!product || product.productId !== parsedProductId) await fetchProductById(parsedProductId);
                 await Promise.all([
@@ -60,12 +49,21 @@ const ProductDetailPage: React.FC = () => {
                     getAvailableSizes(),
                     getAvailableColors()
                 ]);
+                console.log('Hoàn thành fetch dữ liệu cho productId:', parsedProductId);
             } catch (error) {
-                console.error('Failed to fetch data:', error);
+                console.error('Lỗi khi fetch dữ liệu cho productId', parsedProductId, ':', error);
             }
         };
         fetchData();
     }, [parsedProductId, product, fetchProductById, fetchImages, fetchImgHierarchy, fetchHierarchy, fetchVariantsByProduct, getAvailableSizes, getAvailableColors]);
+
+    useEffect(() => {
+        console.log('Trạng thái variantsByProduct:', {
+            variantsByProduct,
+            isLoadingProductVariants,
+            productVariantsError
+        });
+    }, [variantsByProduct, isLoadingProductVariants, productVariantsError]);
 
     useEffect(() => {
         if (!product || isLoadingProduct || isLoadingImages) return;
@@ -235,7 +233,6 @@ const ProductDetailPage: React.FC = () => {
                     </div>
                 </div>
             </div>
-
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-lg p-3 shadow-sm">
                     <ProductImagesSection
@@ -252,7 +249,6 @@ const ProductDetailPage: React.FC = () => {
                     <ProductDetailsSection product={product} />
                 </div>
             </div>
-
             <div className="rounded-lg p-3 shadow-sm">
                 <ProductVariantsSection
                     variants={variantsByProduct || []}
@@ -266,7 +262,6 @@ const ProductDetailPage: React.FC = () => {
                     productId={parsedProductId}
                 />
             </div>
-
             {isImageViewerOpen && (
                 <ImageViewer
                     images={imageList.map(img => img.imageUrl)}
@@ -276,7 +271,6 @@ const ProductDetailPage: React.FC = () => {
                     onNext={handleNextImage}
                 />
             )}
-
             <div className="sr-only">
                 <button onClick={() => setIsImageViewerOpen(false)}>Đóng trình xem ảnh</button>
                 <button onClick={handlePreviousImage}>Ảnh trước</button>

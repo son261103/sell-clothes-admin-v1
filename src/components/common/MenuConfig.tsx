@@ -135,6 +135,11 @@ export const menuItems: IMenuItem[] = [
                 path: '/admin/products/detail/:productId',
                 icon: <Eye className="w-4 h-4" />,
             },
+            {
+                title: 'Import sản phẩm',
+                path: '/admin/products/excel/import',
+                icon: <Plus className="w-4 h-4" />,
+            },
         ]
     },
     {

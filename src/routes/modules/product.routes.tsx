@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { RouteObjectWithMeta } from '../types';
 import { Outlet } from 'react-router-dom';
 import ProductDetailPage from "@/pages/Product/ProductDetailPage.tsx";
+import ProductExcelPage from "@/pages/ProductExcel/ProductExcelPage.tsx";
 
 // Lazy load components
 const ProductListPage = lazy(() => import('@/pages/Product/ProductListPage.tsx'));
@@ -36,6 +37,14 @@ export const productRoutes: RouteObjectWithMeta[] = [
                     requiredPermissions: ['VIEW_PRODUCT']
                 }
             },
+            {
+                path: 'excel/import',
+                element: <ProductExcelPage />,
+                meta: {
+                    title: 'Import Product',
+                    requiredPermissions: ['VIEW_PRODUCT']
+                }
+            }
         ],
         meta: {
             title: 'Product Management',
