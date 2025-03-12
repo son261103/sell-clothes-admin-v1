@@ -16,12 +16,12 @@ export interface BestsellingVariantDTO {
     quantitySold: number;
 }
 
-export interface BestsellingProductDTO {
-    productId: number;
-    productName: string;
-    productImage?: string;
-    totalQuantitySold: number;
-}
+// export interface BestsellingProductDTO {
+//     productId: number;
+//     productName: string;
+//     productImage?: string;
+//     totalQuantitySold: number;
+// }
 
 export interface ProductSalesDataDTO {
     productId: number;

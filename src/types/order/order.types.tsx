@@ -1,6 +1,6 @@
 // order.types.ts
 import { PaymentResponseDTO, PaymentStatus } from '@/types/payment/payment.types';
-import { PageRequest } from "@/types";
+import {CouponDTO, PageRequest} from "@/types";
 
 // Order Status Enum
 export enum OrderStatus {
@@ -68,6 +68,11 @@ export interface OrderResponse {
     // Thêm các trường từ API
     user?: UserInfo;
     address?: AddressInfo;
+
+    // Thêm thông tin coupon
+    coupons?: CouponDTO[];
+    subtotalBeforeDiscount?: number;
+    totalDiscount?: number;
 }
 
 // Thêm interface mới
@@ -108,18 +113,25 @@ export interface OrderItemResponse {
 export interface OrderSummaryDTO {
     orderId: number;
     orderCode: string;
-    userId: number;
-    userName: string;
-    userPhone: string;
-    userEmail: string;
     status: OrderStatus;
+    statusDescription: string;
     totalAmount: number;
     finalAmount: number;
+    shippingFee: number;
+    shippingMethodName?: string;
+    totalItems: number;
     itemCount: number;
     createdAt: string;
-    updatedAt: string;
+    updatedAt?: string;
+    userName?: string;
+    userEmail?: string;
+    userId?: number;
     paymentStatus?: PaymentStatus;
-    shippingMethodName?: string;
+
+    // Thêm thông tin coupon
+    subtotalBeforeDiscount?: number;
+    totalDiscount?: number;
+    hasCoupon?: boolean;
 }
 
 // Order Filters

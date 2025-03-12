@@ -19,7 +19,7 @@ import {
     List,
     Plus,
     PlusCircle,
-    Eye // Thêm icon cho chi tiết
+    Eye, Tag // Thêm icon cho chi tiết
 } from 'lucide-react';
 
 export interface IMenuItem {
@@ -145,6 +145,22 @@ export const menuItems: IMenuItem[] = [
                 title: 'Danh sách đơn hàng',
                 path: '/admin/orders/list',
                 icon: <List className="w-4 h-4" />,
+            },
+        ]
+    },
+    {
+        title: 'Quản lý giảm giá',
+        icon: <Tag className="w-5 h-5" />,
+        children: [
+            {
+                title: 'Danh sách mã giảm giá',
+                path: '/admin/marketing/coupons/list',
+                icon: <List className="w-4 h-4" />,
+            },
+            {
+                title: 'Thêm mã giảm giá',
+                path: '/admin/marketing/coupons/add',
+                icon: <Plus className="w-4 h-4" />,
             },
         ]
     },

@@ -47,6 +47,10 @@ export * from './payment/payment.types'
 // order item
 export * from './orderItem/order.item.types'
 
+// coupon
+export * from './orderCoupon/coupon.types'
+
+
 // phân trang
 export interface PageResponse<T> {
     content: T[];

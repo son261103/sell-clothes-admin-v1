@@ -9,6 +9,7 @@ import {roleRoutes} from "./modules/role.routes.tsx";
 import {categoryRoutes} from "@/routes/modules/category.routes.tsx";
 import {brandRoutes} from "@/routes/modules/brand.routes.tsx";
 import {orderRoutes} from "@/routes/modules/order.routes.tsx";
+import {couponRoutes} from "@/routes/modules/coupon.routes.tsx";
 export const adminRoutes: RouteObjectWithMeta = {
     path: '/admin',
     element: <AdminLayout/>,
@@ -24,7 +25,7 @@ export const adminRoutes: RouteObjectWithMeta = {
         ...categoryRoutes,
         ...brandRoutes,
         ...orderRoutes,
-
+        ...couponRoutes,
 
         ...settingRoutes,
 

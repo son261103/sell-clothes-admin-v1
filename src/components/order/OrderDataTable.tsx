@@ -9,12 +9,13 @@ import OrderActionButtons from './order-list/OrderActionButtons.tsx';
 import OrderLoading from './order-list/OrderLoading.tsx';
 import OrderEmptyState from './order-list/OrderEmptyState.tsx';
 
-// Extended type for OrderSummaryDTO with totalItems
-interface ExtendedOrderSummaryDTO extends OrderSummaryDTO {
-    totalItems?: number;
+// Extended type that adds missing properties to the OrderSummaryDTO
+interface ExtendedOrderSummaryDTO extends Omit<OrderSummaryDTO, 'totalItems'> {
+    totalItems: number;
+    userPhone?: string;
 }
 
-// Using the extended type for the PageResponse
+// Define a type for the response that includes our extended DTO
 type OrderPageResponseExtended = PageResponse<ExtendedOrderSummaryDTO>;
 
 interface OrderDataTableProps {
@@ -62,7 +63,7 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
         }
     }, [orders, forceRefresh]);
 
-    const handleDeleteClick = (order: OrderSummaryDTO) => {
+    const handleDeleteClick = (order: ExtendedOrderSummaryDTO) => {
         onDeleteOrder(order.orderId);
     };
 
@@ -182,7 +183,7 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
     };
 
     // Format username with fallback
-    const formatUsername = (order: OrderSummaryDTO): string => {
+    const formatUsername = (order: ExtendedOrderSummaryDTO): string => {
         if (order.userName && order.userName !== 'Khách hàng') {
             return order.userName;
         }
@@ -190,7 +191,7 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
     };
 
     // Format email with fallback
-    const formatEmail = (order: OrderSummaryDTO): string => {
+    const formatEmail = (order: ExtendedOrderSummaryDTO): string => {
         if (order.userEmail && order.userEmail !== 'Không có email') {
             return order.userEmail;
         }
@@ -198,7 +199,7 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
     };
 
     // Format phone with fallback
-    const formatPhone = (order: OrderSummaryDTO): string => {
+    const formatPhone = (order: ExtendedOrderSummaryDTO): string => {
         if (order.userPhone && order.userPhone !== '') {
             return order.userPhone;
         }
@@ -207,9 +208,9 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
 
     // Get product count text
     const getProductCountText = (order: ExtendedOrderSummaryDTO): string => {
-        if (typeof order.totalItems === 'number' && order.totalItems > 0) {
+        if (order.totalItems > 0) {
             return `${order.totalItems} sản phẩm`;
-        } else if (typeof order.itemCount === 'number' && order.itemCount > 0) {
+        } else if (order.itemCount > 0) {
             return `${order.itemCount} sản phẩm`;
         }
         return "0 sản phẩm";
@@ -276,8 +277,8 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
 
                                 <OrderActionButtons
                                     order={order}
-                                    onView={onViewOrder}
-                                    onDelete={handleDeleteClick}
+                                    onView={() => onViewOrder(order)}
+                                    onDelete={() => handleDeleteClick(order)}
                                     onStatusChange={onStatusChange}
                                 />
                             </div>
@@ -384,8 +385,8 @@ const OrderDataTable: React.FC<OrderDataTableProps> = ({
                                 <div className="flex justify-center">
                                     <OrderActionButtons
                                         order={order}
-                                        onView={onViewOrder}
-                                        onDelete={handleDeleteClick}
+                                        onView={() => onViewOrder(order)}
+                                        onDelete={() => handleDeleteClick(order)}
                                         onStatusChange={onStatusChange}
                                     />
                                 </div>

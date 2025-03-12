@@ -5,7 +5,7 @@ export const ORDER_ENDPOINTS = {
     VIEW: (id: number) => `/orders/view/${id}`,
     VIEW_ADMIN: (id: number) => `/orders/${id}`,
     CREATE: '/orders/create',
-    DELETE: (id: number) => `/orders/admin/${id}`,
+    DELETE: (id: number) => `/orders/${id}`,
 
     // User specific operations
     USER_ORDERS: (userId: number) => `/orders/user/${userId}`,
