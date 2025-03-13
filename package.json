@@ -42,6 +42,7 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "framer-motion": "^12.4.1",
     "globals": "^15.14.0",
+    "jszip": "^3.10.1",
     "postcss": "^8.5.1",
     "react-beautiful-dnd": "^13.1.1",
     "react-hook-form": "^7.54.2",

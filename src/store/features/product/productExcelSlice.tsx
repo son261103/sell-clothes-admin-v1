@@ -11,6 +11,8 @@ import type {
     ProductExcelZipInfoResponse,
     SkuGenerationPreviewRequest,
     SkuGenerationPreviewResponse,
+    BulkSkuGenerationPreviewRequest,
+    BulkSkuGenerationPreviewResponse,
     ProductExcelTemplateResponse,
     ProductExcelBulkOperationResponse,
     ProductExcelErrorReport
@@ -24,6 +26,7 @@ interface ProductExcelState {
     zipInfo: ProductExcelZipInfoResponse | null;
     templateInfo: ProductExcelTemplateResponse | null;
     skuPreview: SkuGenerationPreviewResponse | null;
+    bulkSkuPreview: BulkSkuGenerationPreviewResponse | null;
     bulkOperationResult: ProductExcelBulkOperationResponse | null;
     errorReport: ProductExcelErrorReport | null;
     isLoading: boolean;
@@ -39,6 +42,7 @@ const initialState: ProductExcelState = {
     zipInfo: null,
     templateInfo: null,
     skuPreview: null,
+    bulkSkuPreview: null,
     bulkOperationResult: null,
     errorReport: null,
     isLoading: false,
@@ -114,6 +118,56 @@ export const downloadTemplate = createAsyncThunk(
     }
 );
 
+export const downloadFullTemplate = createAsyncThunk(
+    'productExcel/downloadFullTemplate',
+    async (_, { rejectWithValue }) => {
+        try {
+            const blob = await ProductExcelService.downloadFullTemplate();
+            // Create a URL for the blob
+            const url = window.URL.createObjectURL(blob);
+            // Create a link element
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'product_import_full_package.zip');
+            // Append to the document
+            document.body.appendChild(link);
+            // Trigger download
+            link.click();
+            // Clean up
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            return true;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
+export const downloadInstructions = createAsyncThunk(
+    'productExcel/downloadInstructions',
+    async (_, { rejectWithValue }) => {
+        try {
+            const blob = await ProductExcelService.downloadInstructions();
+            // Create a URL for the blob
+            const url = window.URL.createObjectURL(blob);
+            // Create a link element
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'product_import_instructions.pdf');
+            // Append to the document
+            document.body.appendChild(link);
+            // Trigger download
+            link.click();
+            // Clean up
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            return true;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
 export const exportProducts = createAsyncThunk(
     'productExcel/export',
     async (request: ProductExcelExportRequest, { rejectWithValue }) => {
@@ -124,7 +178,7 @@ export const exportProducts = createAsyncThunk(
             // Create a link element
             const link = document.createElement('a');
             link.href = url;
-            const filename = `products_export_${new Date().toISOString().slice(0, 10)}.${request.fileFormat}`;
+            const filename = `products_export_${new Date().toISOString().slice(0, 10)}.${request.fileFormat || 'xlsx'}`;
             link.setAttribute('download', filename);
             // Append to the document
             document.body.appendChild(link);
@@ -194,6 +248,21 @@ export const generateSkuPreview = createAsyncThunk(
     }
 );
 
+export const generateBulkSkuPreview = createAsyncThunk(
+    'productExcel/bulkSkuPreview',
+    async (request: BulkSkuGenerationPreviewRequest, { rejectWithValue }) => {
+        try {
+            const response = await ProductExcelService.generateBulkSkuPreview(request);
+            if (!response.success || !response.data) {
+                return rejectWithValue(response.message || 'Failed to generate bulk SKU preview');
+            }
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
 export const performBulkOperation = createAsyncThunk(
     'productExcel/bulkOperation',
     async (
@@ -227,6 +296,31 @@ export const fetchErrorReport = createAsyncThunk(
     }
 );
 
+export const downloadErrorReport = createAsyncThunk(
+    'productExcel/downloadErrorReport',
+    async (reportUrl: string, { rejectWithValue }) => {
+        try {
+            const blob = await ProductExcelService.downloadErrorReport(reportUrl);
+            // Create a URL for the blob
+            const url = window.URL.createObjectURL(blob);
+            // Create a link element
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `error_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            // Append to the document
+            document.body.appendChild(link);
+            // Trigger download
+            link.click();
+            // Clean up
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            return true;
+        } catch (error) {
+            return rejectWithValue(handleError(error));
+        }
+    }
+);
+
 const productExcelSlice = createSlice({
     name: 'productExcel',
     initialState,
@@ -251,6 +345,9 @@ const productExcelSlice = createSlice({
         },
         clearSkuPreview: (state) => {
             state.skuPreview = null;
+        },
+        clearBulkSkuPreview: (state) => {
+            state.bulkSkuPreview = null;
         },
         clearBulkOperationResult: (state) => {
             state.bulkOperationResult = null;
@@ -298,6 +395,34 @@ const productExcelSlice = createSlice({
                 state.error = null;
             })
             .addCase(downloadTemplate.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
+            // Download full template
+            .addCase(downloadFullTemplate.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(downloadFullTemplate.fulfilled, (state) => {
+                state.isLoading = false;
+                state.error = null;
+            })
+            .addCase(downloadFullTemplate.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
+            // Download instructions
+            .addCase(downloadInstructions.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(downloadInstructions.fulfilled, (state) => {
+                state.isLoading = false;
+                state.error = null;
+            })
+            .addCase(downloadInstructions.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
             })
@@ -362,6 +487,21 @@ const productExcelSlice = createSlice({
                 state.error = action.payload as string;
             })
 
+            // Generate Bulk SKU preview
+            .addCase(generateBulkSkuPreview.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(generateBulkSkuPreview.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.bulkSkuPreview = action.payload;
+                state.error = null;
+            })
+            .addCase(generateBulkSkuPreview.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
+            })
+
             // Perform bulk operation
             .addCase(performBulkOperation.pending, (state) => {
                 state.isLoading = true;
@@ -390,6 +530,20 @@ const productExcelSlice = createSlice({
             .addCase(fetchErrorReport.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
+            })
+
+            // Download error report
+            .addCase(downloadErrorReport.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(downloadErrorReport.fulfilled, (state) => {
+                state.isLoading = false;
+                state.error = null;
+            })
+            .addCase(downloadErrorReport.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload as string;
             });
     }
 });
@@ -402,6 +556,7 @@ export const {
     clearErrorReport,
     clearZipInfo,
     clearSkuPreview,
+    clearBulkSkuPreview,
     clearBulkOperationResult
 } = productExcelSlice.actions;
 

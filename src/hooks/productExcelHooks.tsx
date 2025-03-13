@@ -4,12 +4,16 @@ import {
     importProducts,
     checkImportStatus,
     downloadTemplate,
+    downloadFullTemplate,
+    downloadInstructions,
     exportProducts,
     getTemplateInfo,
     analyzeZipFile,
     generateSkuPreview,
+    generateBulkSkuPreview,
     performBulkOperation,
     fetchErrorReport,
+    downloadErrorReport,
     clearError,
     clearImportResult,
     clearExportResult,
@@ -17,6 +21,7 @@ import {
     clearErrorReport,
     clearZipInfo,
     clearSkuPreview,
+    clearBulkSkuPreview,
     clearBulkOperationResult
 } from '../store/features/product/productExcelSlice';
 import {
@@ -26,6 +31,7 @@ import {
     selectZipInfo,
     selectTemplateInfo,
     selectSkuPreview,
+    selectBulkSkuPreview,
     selectBulkOperationResult,
     selectErrorReport,
     selectError,
@@ -37,10 +43,16 @@ import {
     selectImportJobId,
     selectZipContents,
     selectZipSkuFolders,
+    selectZipSkuList,
+    selectSkusWithoutMainImage,
     selectTemplateFeatures,
     selectTemplateVersion,
+    selectTemplateLastUpdated,
+    selectTemplateDetails,
     selectErrorDetails,
     selectTotalErrors,
+    selectErrorRowCount,
+    selectErrorReportGeneratedAt,
     selectImportOperationStatus,
     selectExportOperationStatus,
     selectGeneralOperationStatus,
@@ -49,16 +61,25 @@ import {
     selectErrorReportUrl,
     selectCanDownloadErrorReport,
     selectBulkOperationSuccess,
+    selectBulkOperationStats,
     selectBulkOperationWarnings,
     selectBulkOperationErrors,
-    selectSkuGenerationDetails
+    selectSkuGenerationDetails,
+    selectBulkSkuGenerationDetails,
+    selectBulkSkuList,
+    selectBulkSkuPaths,
+    selectBulkSkusBySize,
+    selectBulkSkusByColor,
+    selectTemplateDownloadStatus,
+    selectIsDownloadingErrorReport
 } from '../store/features/product/productExcelSelectors';
 import type {
     ProductExcelImportRequest,
     ProductExcelExportRequest,
     ProductExcelImportProgressRequest,
     ProductExcelZipInfoRequest,
-    SkuGenerationPreviewRequest
+    SkuGenerationPreviewRequest,
+    BulkSkuGenerationPreviewRequest
 } from '@/types';
 
 // Main hook for Excel operations
@@ -154,11 +175,31 @@ export const useProductExcelTemplate = () => {
     const templateInfo = useAppSelector(selectTemplateInfo);
     const templateFeatures = useAppSelector(selectTemplateFeatures);
     const templateVersion = useAppSelector(selectTemplateVersion);
-    const { isLoading, error, isSuccess } = useAppSelector(selectGeneralOperationStatus);
+    const templateLastUpdated = useAppSelector(selectTemplateLastUpdated);
+    const templateDetails = useAppSelector(selectTemplateDetails);
+    const { isLoading, error, isSuccess } = useAppSelector(selectTemplateDownloadStatus);
 
     const handleDownloadTemplate = useCallback(async () => {
         try {
             await dispatch(downloadTemplate()).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch]);
+
+    const handleDownloadFullTemplate = useCallback(async () => {
+        try {
+            await dispatch(downloadFullTemplate()).unwrap();
+            return true;
+        } catch {
+            return false;
+        }
+    }, [dispatch]);
+
+    const handleDownloadInstructions = useCallback(async () => {
+        try {
+            await dispatch(downloadInstructions()).unwrap();
             return true;
         } catch {
             return false;
@@ -178,10 +219,14 @@ export const useProductExcelTemplate = () => {
         templateInfo,
         templateFeatures,
         templateVersion,
+        templateLastUpdated,
+        templateDetails,
         isLoading,
         error,
         isSuccess,
         downloadTemplate: handleDownloadTemplate,
+        downloadFullTemplate: handleDownloadFullTemplate,
+        downloadInstructions: handleDownloadInstructions,
         getTemplateInfo: handleGetTemplateInfo
     };
 };
@@ -227,6 +272,8 @@ export const useProductExcelZipInfo = () => {
     const zipInfo = useAppSelector(selectZipInfo);
     const zipContents = useAppSelector(selectZipContents);
     const skuFolders = useAppSelector(selectZipSkuFolders);
+    const skuList = useAppSelector(selectZipSkuList);
+    const skusWithoutMainImage = useAppSelector(selectSkusWithoutMainImage);
     const { isLoading, error, isSuccess } = useAppSelector(selectGeneralOperationStatus);
 
     const handleAnalyzeZipFile = useCallback(async (request: ProductExcelZipInfoRequest) => {
@@ -246,6 +293,8 @@ export const useProductExcelZipInfo = () => {
         zipInfo,
         zipContents,
         skuFolders,
+        skuList,
+        skusWithoutMainImage,
         isLoading,
         error,
         isSuccess,
@@ -285,11 +334,51 @@ export const useProductExcelSkuGeneration = () => {
     };
 };
 
+// Hook for Bulk SKU generation
+export const useProductExcelBulkSkuGeneration = () => {
+    const dispatch = useAppDispatch();
+    const bulkSkuPreview = useAppSelector(selectBulkSkuPreview);
+    const bulkSkuGenerationDetails = useAppSelector(selectBulkSkuGenerationDetails);
+    const bulkSkuList = useAppSelector(selectBulkSkuList);
+    const bulkSkuPaths = useAppSelector(selectBulkSkuPaths);
+    const bulkSkusBySize = useAppSelector(selectBulkSkusBySize);
+    const bulkSkusByColor = useAppSelector(selectBulkSkusByColor);
+    const { isLoading, error, isSuccess } = useAppSelector(selectGeneralOperationStatus);
+
+    const handleGenerateBulkSkuPreview = useCallback(async (request: BulkSkuGenerationPreviewRequest) => {
+        try {
+            const result = await dispatch(generateBulkSkuPreview(request)).unwrap();
+            return result;
+        } catch {
+            return null;
+        }
+    }, [dispatch]);
+
+    const handleClearBulkSkuPreview = useCallback(() => {
+        dispatch(clearBulkSkuPreview());
+    }, [dispatch]);
+
+    return {
+        bulkSkuPreview,
+        bulkSkuGenerationDetails,
+        bulkSkuList,
+        bulkSkuPaths,
+        bulkSkusBySize,
+        bulkSkusByColor,
+        isLoading,
+        error,
+        isSuccess,
+        generateBulkSkuPreview: handleGenerateBulkSkuPreview,
+        clearBulkSkuPreview: handleClearBulkSkuPreview
+    };
+};
+
 // Hook for bulk operations
 export const useProductExcelBulkOperations = () => {
     const dispatch = useAppDispatch();
     const bulkOperationResult = useAppSelector(selectBulkOperationResult);
     const bulkOperationSuccess = useAppSelector(selectBulkOperationSuccess);
+    const bulkOperationStats = useAppSelector(selectBulkOperationStats);
     const bulkOperationWarnings = useAppSelector(selectBulkOperationWarnings);
     const bulkOperationErrors = useAppSelector(selectBulkOperationErrors);
     const { isLoading, error, isSuccess } = useAppSelector(selectGeneralOperationStatus);
@@ -313,6 +402,7 @@ export const useProductExcelBulkOperations = () => {
     return {
         bulkOperationResult,
         bulkOperationSuccess,
+        bulkOperationStats,
         bulkOperationWarnings,
         bulkOperationErrors,
         isLoading,
@@ -329,7 +419,11 @@ export const useProductExcelErrorReport = () => {
     const errorReport = useAppSelector(selectErrorReport);
     const errorDetails = useAppSelector(selectErrorDetails);
     const totalErrors = useAppSelector(selectTotalErrors);
+    const errorRowCount = useAppSelector(selectErrorRowCount);
+    const errorReportUrl = useAppSelector(selectErrorReportUrl);
+    const errorReportGeneratedAt = useAppSelector(selectErrorReportGeneratedAt);
     const { isLoading, error, isSuccess } = useAppSelector(selectGeneralOperationStatus);
+    const downloadStatus = useAppSelector(selectIsDownloadingErrorReport);
 
     const handleFetchErrorReport = useCallback(async (reportUrl: string) => {
         try {
@@ -337,6 +431,15 @@ export const useProductExcelErrorReport = () => {
             return result;
         } catch {
             return null;
+        }
+    }, [dispatch]);
+
+    const handleDownloadErrorReport = useCallback(async (reportUrl: string) => {
+        try {
+            await dispatch(downloadErrorReport(reportUrl)).unwrap();
+            return true;
+        } catch {
+            return false;
         }
     }, [dispatch]);
 
@@ -348,10 +451,15 @@ export const useProductExcelErrorReport = () => {
         errorReport,
         errorDetails,
         totalErrors,
+        errorRowCount,
+        errorReportUrl,
+        errorReportGeneratedAt,
         isLoading,
         error,
         isSuccess,
+        downloadStatus,
         fetchErrorReport: handleFetchErrorReport,
+        downloadErrorReport: handleDownloadErrorReport,
         clearErrorReport: handleClearErrorReport
     };
 };
