@@ -1,6 +1,11 @@
 import React from 'react';
 import { Upload, PackageOpen, FileSpreadsheet, Loader2, X } from 'lucide-react';
-import { FileUploadProps } from './types';
+
+export interface FileUploadProps {
+    selectedFile: File | null;
+    setSelectedFile: (file: File | null) => void;
+    isAnalyzingFile: boolean;
+}
 
 const FileUpload: React.FC<FileUploadProps> = ({
                                                    selectedFile,

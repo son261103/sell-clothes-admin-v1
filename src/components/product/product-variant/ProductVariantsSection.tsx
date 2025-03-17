@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { Package2, Plus, CheckCircle, XCircle, Edit, Trash2, ArrowDownUp } from 'lucide-react';
+import {
+    Package2, Plus, CheckCircle, XCircle, Edit, Trash2,
+    ArrowDownUp, FileSpreadsheet, Upload, Download, Loader2, AlertCircle
+} from 'lucide-react';
 import { ProductVariantResponse, ProductVariantCreateRequest, ProductVariantUpdateRequest } from '@/types';
+import FileUpload from '../../product-excel/FileUpload';
+import FileAnalysis from '../../product-excel/FileAnalysis';
 
 // Hàm chuyển mã màu thành tên màu (đơn giản hóa)
 const getColorNameFromHex = (hex: string): string => {
@@ -44,8 +49,26 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                                                                               }) => {
     console.log('Rendering ProductVariantsSection với variants:', variants);
 
+    // State for modals
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    // State for import functionality
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isAnalyzingFile, setIsAnalyzingFile] = useState(false);
+    const [zipContents, setZipContents] = useState<any>(null);
+    const [skuFolders, setSkuFolders] = useState<any[]>([]);
+    const [importProgress, setImportProgress] = useState(0);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importError, setImportError] = useState<string | null>(null);
+    const [importSuccess, setImportSuccess] = useState(false);
+    const [importResult, setImportResult] = useState<{
+        totalImported: number;
+        errorCount: number;
+        skuList: string[];
+    } | null>(null);
+
     const [selectedVariant, setSelectedVariant] = useState<ProductVariantResponse | null>(null);
     const [sortConfig, setSortConfig] = useState<{
         key: 'color' | 'size' | 'stock' | 'sku';
@@ -128,7 +151,7 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
 
         const variantData: ProductVariantCreateRequest = {
             productId,
-            color: colorName, // Sử dụng tên màu thay vì mã hex
+            color: colorName,
             size,
             sku: formData.sku,
             stockQuantity: formData.stockQuantity,
@@ -185,7 +208,7 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
     const startEdit = (variant: ProductVariantResponse) => {
         setSelectedVariant(variant);
         setFormData({
-            color: variant.color.startsWith('#') ? variant.color : '#000000', // Nếu màu là mã hex thì giữ, nếu không thì mặc định
+            color: variant.color.startsWith('#') ? variant.color : '#000000',
             size: variant.size,
             sku: variant.sku,
             stockQuantity: variant.stockQuantity,
@@ -216,6 +239,116 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
         return status
             ? `${baseClasses} text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400`
             : `${baseClasses} text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400`;
+    };
+
+    // Excel import functions
+    const handleFileSelect = (file: File | null) => {
+        setSelectedFile(file);
+        setImportError(null);
+
+        if (file) {
+            analyzeFile(file);
+        } else {
+            setZipContents(null);
+            setSkuFolders([]);
+        }
+    };
+
+    const analyzeFile = async (file: File) => {
+        setIsAnalyzingFile(true);
+        try {
+            // Here you would typically call an API to analyze the file
+            // For now, we'll simulate the analysis
+            if (file.name.toLowerCase().endsWith('.zip')) {
+                // Simulate ZIP analysis
+                setTimeout(() => {
+                    const mockZipContents = {
+                        hasExcelFile: true,
+                        excelFileName: 'variants.xlsx',
+                        hasImagesFolder: true,
+                        imageCount: Math.floor(Math.random() * 10) + 1,
+                        totalSize: file.size,
+                        formattedSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+                    };
+
+                    const mockSkuFolders = Array(3).fill(0).map((_, i) => ({
+                        sku: `SKU${i + 100}`,
+                        hasMainImage: Math.random() > 0.3,
+                        secondaryImageCount: Math.floor(Math.random() * 5)
+                    }));
+
+                    setZipContents(mockZipContents);
+                    setSkuFolders(mockSkuFolders);
+                    setIsAnalyzingFile(false);
+                }, 1500);
+            } else {
+                // Excel file
+                setTimeout(() => {
+                    setIsAnalyzingFile(false);
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Error analyzing file:', error);
+            setImportError('Không thể phân tích tập tin. Vui lòng thử lại sau.');
+            setIsAnalyzingFile(false);
+        }
+    };
+
+    const handleImportVariants = async () => {
+        if (!selectedFile) return;
+
+        setIsImporting(true);
+        setImportProgress(0);
+        setImportError(null);
+
+        try {
+            // Simulate progress updates
+            const progressInterval = setInterval(() => {
+                setImportProgress(prev => {
+                    if (prev >= 95) {
+                        clearInterval(progressInterval);
+                        return prev;
+                    }
+                    return prev + 5;
+                });
+            }, 300);
+
+            // Simulate API call to import variants
+            setTimeout(() => {
+                clearInterval(progressInterval);
+                setImportProgress(100);
+
+                // Simulate successful import
+                setImportSuccess(true);
+                setImportResult({
+                    totalImported: Math.floor(Math.random() * 10) + 1,
+                    errorCount: 0,
+                    skuList: Array(3).fill(0).map((_, i) => `SKU${i + 100}`)
+                });
+
+                // Reset after delay
+                setTimeout(() => {
+                    setSelectedFile(null);
+                    setImportProgress(0);
+                }, 5000);
+            }, 3000);
+
+        } catch (error) {
+            console.error('Error importing variants:', error);
+            setImportError('Có lỗi xảy ra khi nhập dữ liệu. Vui lòng thử lại sau.');
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
+    const handleExportVariants = () => {
+        // In a real implementation, this would call an API to generate an Excel file
+        alert('Tính năng xuất biến thể ra Excel sẽ được triển khai sau.');
+    };
+
+    const handleDownloadTemplate = () => {
+        // In a real implementation, this would download a template for variant imports
+        alert('Tính năng tải mẫu Excel sẽ được triển khai sau.');
     };
 
     const renderVariantForm = (isEdit: boolean = false) => (
@@ -352,6 +485,25 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                         <Package2 className="h-5 w-5 text-primary" /> Tất cả biến thể sản phẩm ({variants.length})
                     </h2>
                     <div className="flex gap-2">
+                        {/* Excel import/export buttons */}
+                        <div className="flex gap-2 mr-4">
+                            <button
+                                onClick={() => setIsImportModalOpen(true)}
+                                className="btn btn-sm bg-primary/10 text-primary hover:bg-primary/20"
+                            >
+                                <Upload className="h-3.5 w-3.5" />
+                                <span>Nhập Excel</span>
+                            </button>
+                            <button
+                                onClick={handleExportVariants}
+                                className="btn btn-sm bg-primary/10 text-primary hover:bg-primary/20"
+                            >
+                                <Download className="h-3.5 w-3.5" />
+                                <span>Xuất Excel</span>
+                            </button>
+                        </div>
+
+                        {/* Sort dropdown */}
                         <div className="dropdown dropdown-end">
                             <label tabIndex={0} className="btn btn-ghost btn-sm text-textDark dark:text-textLight">
                                 <ArrowDownUp className="h-4 w-4" />
@@ -364,6 +516,8 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                                 <li><button onClick={() => handleSort('sku')} className="text-textDark dark:text-textLight">Theo SKU</button></li>
                             </ul>
                         </div>
+
+                        {/* Add variant button */}
                         <button
                             onClick={() => setIsAddModalOpen(true)}
                             className="btn btn-sm bg-primary text-white hover:bg-primary/90"
@@ -372,6 +526,7 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                         </button>
                     </div>
                 </div>
+
                 {sortedVariants.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse table-fixed">
@@ -461,6 +616,8 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Add Variant Modal */}
             <dialog className={`modal ${isAddModalOpen ? 'modal-open' : ''}`}>
                 <div className="modal-box w-11/12 max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <h3 className="mb-4 text-lg font-bold text-textDark dark:text-textLight">Thêm biến thể mới</h3>
@@ -470,6 +627,8 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     <button onClick={() => setIsAddModalOpen(false)}>Đóng</button>
                 </form>
             </dialog>
+
+            {/* Edit Variant Modal */}
             <dialog className={`modal ${isEditModalOpen ? 'modal-open' : ''}`}>
                 <div className="modal-box w-11/12 max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <h3 className="mb-4 text-lg font-bold text-textDark dark:text-textLight">Chỉnh sửa biến thể</h3>
@@ -479,6 +638,145 @@ export const ProductVariantsSection: React.FC<ProductVariantsSectionProps> = ({
                     <button onClick={() => setIsEditModalOpen(false)}>Đóng</button>
                 </form>
             </dialog>
+
+            {/* Import Variants Modal */}
+            <dialog className={`modal ${isImportModalOpen ? 'modal-open' : ''}`}>
+                <div className="modal-box w-11/12 max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <h3 className="mb-4 text-lg font-bold text-textDark dark:text-textLight">Nhập biến thể từ Excel</h3>
+
+                    <div className="space-y-4">
+                        {/* Import instructions */}
+                        <div className="mb-4">
+                            <h4 className="font-medium mb-2">Hướng dẫn nhập Excel</h4>
+                            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                <li>Tải mẫu Excel từ nút "Tải mẫu Excel"</li>
+                                <li>Điền thông tin biến thể theo hướng dẫn trong tập tin</li>
+                                <li>Nếu cần nhập hình ảnh, hãy đóng gói tập tin Excel và thư mục hình ảnh vào file ZIP</li>
+                                <li>Tải lên tập tin Excel đã điền hoặc file ZIP</li>
+                            </ul>
+                        </div>
+
+                        {/* Template download */}
+                        <div className="flex justify-start mb-4">
+                            <button
+                                onClick={handleDownloadTemplate}
+                                className="inline-flex justify-center h-9 px-3 text-sm rounded-md bg-primary/10 text-primary hover:bg-primary/20 items-center gap-1.5"
+                            >
+                                <FileSpreadsheet className="h-3.5 w-3.5"/>
+                                <span>Tải mẫu Excel</span>
+                            </button>
+                        </div>
+
+                        {/* File upload */}
+                        <FileUpload
+                            selectedFile={selectedFile}
+                            setSelectedFile={handleFileSelect}
+                            isAnalyzingFile={isAnalyzingFile}
+                        />
+
+                        {/* File analysis */}
+                        {selectedFile && !isImporting && !importSuccess && (
+                            <FileAnalysis
+                                selectedFile={selectedFile}
+                                isAnalyzingFile={isAnalyzingFile}
+                                zipContents={zipContents}
+                                skuFolders={skuFolders}
+                            />
+                        )}
+
+                        {/* Import error */}
+                        {importError && (
+                            <div className="border border-red-200 dark:border-red-900 rounded-md p-4 bg-red-50 dark:bg-red-900/20">
+                                <div className="flex items-center text-red-600 dark:text-red-400">
+                                    <AlertCircle className="h-5 w-5 mr-2" />
+                                    <h3 className="font-medium">Lỗi khi nhập dữ liệu</h3>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    {importError}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Import success */}
+                        {importSuccess && importResult && (
+                            <div className="border border-green-200 dark:border-green-900 rounded-md p-4 bg-green-50 dark:bg-green-900/20">
+                                <div className="flex items-center text-green-600 dark:text-green-400">
+                                    <CheckCircle className="h-5 w-5 mr-2" />
+                                    <h3 className="font-medium">Nhập dữ liệu thành công</h3>
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    <p>Đã nhập thành công {importResult.totalImported} biến thể.</p>
+                                    {importResult.errorCount > 0 && (
+                                        <p className="text-amber-600 dark:text-amber-400">
+                                            Có {importResult.errorCount} lỗi trong quá trình nhập.
+                                        </p>
+                                    )}
+                                    <p className="mt-2">Danh sách SKU đã nhập:</p>
+                                    <ul className="list-disc pl-5 mt-1">
+                                        {importResult.skuList.map((sku, index) => (
+                                            <li key={index}>{sku}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Progress bar */}
+                        {isImporting && (
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4">
+                                <div
+                                    className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-in-out"
+                                    style={{ width: `${importProgress}%` }}
+                                ></div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
+                                    {importProgress}% hoàn thành
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                onClick={() => {
+                                    setIsImportModalOpen(false);
+                                    setSelectedFile(null);
+                                    setImportSuccess(false);
+                                    setImportResult(null);
+                                    setImportError(null);
+                                }}
+                                className="btn btn-ghost text-textDark dark:text-textLight hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                                {importSuccess ? 'Đóng' : 'Hủy'}
+                            </button>
+
+                            {selectedFile && !isImporting && !importSuccess && (
+                                <button
+                                    onClick={handleImportVariants}
+                                    className="btn bg-primary hover:bg-primary/90 text-white"
+                                    disabled={isAnalyzingFile}
+                                >
+                                    {isAnalyzingFile ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Đang phân tích...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="h-4 w-4" />
+                                            <span>Nhập dữ liệu</span>
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <form method="dialog" className="modal-backdrop">
+                    <button onClick={() => setIsImportModalOpen(false)}>Đóng</button>
+                </form>
+            </dialog>
         </div>
     );
 };
+
+export default ProductVariantsSection;

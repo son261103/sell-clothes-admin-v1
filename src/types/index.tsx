@@ -71,3 +71,14 @@ export interface PageRequest {
     sort?: string;
 }
 
+export interface ErrorResponseType {
+    /** Thời gian xảy ra lỗi */
+    timestamp: string;
+    /** Mã trạng thái HTTP */
+    status: number;
+    /** Loại lỗi */
+    error: string;
+    /** Thông báo lỗi chi tiết */
+    message: string;
+}
+

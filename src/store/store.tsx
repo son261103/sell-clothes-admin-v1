@@ -18,7 +18,7 @@ import paymentReducer from './features/payment/paymentSlice.tsx';
 import orderItemReducer from './features/orderItem/orderItemSlice.tsx';
 import couponReducer from './features/coupon/couponSlice.tsx';
 import productExcelReducer from './features/product/productExcelSlice.tsx';
-
+import productSeparateExcelReducer from './features/product/ProductSeparateExcelSlice.tsx';
 
 // Persist config riêng cho từng slice nếu cần tùy chỉnh
 const productPersistConfig = {
@@ -51,6 +51,7 @@ const persistedPaymentReducer = persistReducer({key: 'payment', storage}, paymen
 const persistedOrderItemReducer = persistReducer({key: 'orderItem', storage}, orderItemReducer);
 const persistedCouponReducer = persistReducer({key: 'coupon', storage}, couponReducer);
 const persistedProductExcelReducer = persistReducer({key: 'productExcel', storage}, productExcelReducer);
+const persistedProductSeparateExcelReducer = persistReducer({key: 'productSeparateExcel', storage}, productSeparateExcelReducer);
 
 
 export const store = configureStore({
@@ -72,6 +73,7 @@ export const store = configureStore({
         orderItem: persistedOrderItemReducer,
         coupon: persistedCouponReducer,
         productExcel: persistedProductExcelReducer,
+        productSeparateExcel: persistedProductSeparateExcelReducer,
 
     },
     middleware: (getDefaultMiddleware) =>
