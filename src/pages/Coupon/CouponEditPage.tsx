@@ -343,7 +343,7 @@ const CouponEditPage: React.FC = () => {
         ) {
             setShowConfirmModal(true);
         } else {
-            navigate(`/admin/coupons/detail/${couponId}`);
+            navigate(`/admin/marketing/coupons/list`);
         }
     }, [navigate, formData, foundById, couponId]);
 

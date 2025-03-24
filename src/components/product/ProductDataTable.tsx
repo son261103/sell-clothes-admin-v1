@@ -59,11 +59,21 @@ const ProductDataTable: React.FC<ProductDataTableProps> = ({
             : `${baseClasses} text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400`;
     };
 
+    // Helper function to safely get names with fallbacks
+    const getCategoryName = (product: ProductResponse) => {
+        return product.category?.name || 'Không có danh mục';
+    };
+
+    const getBrandName = (product: ProductResponse) => {
+        return product.brand?.name || 'Không có thương hiệu';
+    };
+
     if (isLoading) {
         return <ProductLoading />;
     }
 
-    if (!products.content.length) {
+    // Make sure products.content exists and has items
+    if (!products?.content || !products.content.length) {
         return <ProductEmptyState onRefresh={onRefresh} />;
     }
 
@@ -148,43 +158,43 @@ const ProductDataTable: React.FC<ProductDataTableProps> = ({
                             </td>
                             <td className="py-2 px-4 border-r border-gray-200 dark:border-gray-700">
                                 <div className="flex flex-col items-center gap-1">
-                                        <span className="text-sm text-textDark dark:text-textLight">
-                                            {product.category.name}
-                                        </span>
+                                    <span className="text-sm text-textDark dark:text-textLight">
+                                        {getCategoryName(product)}
+                                    </span>
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                                            {product.brand.name}
-                                        </span>
+                                        {getBrandName(product)}
+                                    </span>
                                 </div>
                             </td>
                             <td className="py-2 px-4 border-r border-gray-200 dark:border-gray-700">
                                 <div className="flex flex-col items-center gap-1">
-                                        <span className="text-sm font-medium text-primary">
-                                            {formatPrice(product.price)}
-                                        </span>
+                                    <span className="text-sm font-medium text-primary">
+                                        {formatPrice(product.price)}
+                                    </span>
                                     {product.salePrice && (
                                         <span className="text-xs font-medium text-red-600">
-                                                {formatPrice(product.salePrice)}
-                                            </span>
+                                            {formatPrice(product.salePrice)}
+                                        </span>
                                     )}
                                 </div>
                             </td>
                             <td className="py-1 px-1 border-r border-gray-200 dark:border-gray-700">
                                 <div className="flex justify-center">
-                                        <span className={getStatusBadgeClass(product.status)}>
-                                            <div className="flex items-center gap-1">
-                                                {product.status ? (
-                                                    <>
-                                                        <CheckCircle className="w-3 h-3"/>
-                                                        <span>Hoạt động</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <XCircle className="w-3 h-3"/>
-                                                        <span>Vô hiệu</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </span>
+                                    <span className={getStatusBadgeClass(product.status)}>
+                                        <div className="flex items-center gap-1">
+                                            {product.status ? (
+                                                <>
+                                                    <CheckCircle className="w-3 h-3"/>
+                                                    <span>Hoạt động</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <XCircle className="w-3 h-3"/>
+                                                    <span>Vô hiệu</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </span>
                                 </div>
                             </td>
                             <td className="py-2 px-4">

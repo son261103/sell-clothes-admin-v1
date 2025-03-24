@@ -320,7 +320,7 @@ const CouponAddPage: React.FC = () => {
         if (formData.code || formData.value > 0 || formData.description) {
             setShowConfirmModal(true);
         } else {
-            navigate('/admin/coupons/list');
+            navigate('/admin/marketing/coupons/list');
         }
     }, [navigate, formData]);
 

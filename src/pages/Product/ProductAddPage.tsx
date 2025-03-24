@@ -2,16 +2,20 @@ import React, { useState, useCallback, useEffect, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     CircleArrowLeft, Package, AlertCircle,
-    Save, X, CheckCircle, XCircle, Building2, DollarSign, Tag
+    Save, X, CheckCircle, XCircle, Building2, DollarSign, Tag, ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import ConfirmationModal from '../../components/common/ConfirmationModal';
 import { useProducts } from '../../hooks/productHooks';
 import { useCategories } from '../../hooks/categoryHooks';
+import { useCategoryHierarchy } from '../../hooks/categoryHooks';
 import { useBrands } from '../../hooks/brandHooks';
 import type { ProductCreateRequest, CategoryResponse, BrandResponse } from '@/types';
 import { generateSlug } from '@/utils/stringUtils';
+
+// Định nghĩa giới hạn độ dài mô tả
+const DESCRIPTION_MAX_LENGTH = 255;
 
 interface ValidationError {
     [key: string]: string;
@@ -29,6 +33,7 @@ interface FormFields {
     price: number;
     salePrice: number;
     categoryId: number;
+    parentCategoryId: number; // Chỉ dùng để lọc danh mục con
     brandId: number;
     status: boolean;
     slug: string;
@@ -46,6 +51,7 @@ const initialFormState: FormFields = {
     price: 0,
     salePrice: 0,
     categoryId: 0,
+    parentCategoryId: 0,
     brandId: 0,
     status: true,
     slug: ''
@@ -79,11 +85,13 @@ const Switch: React.FC<SwitchProps> = ({ checked, onChange, disabled = false }) 
 const ProductAddPage: React.FC = () => {
     const navigate = useNavigate();
     const { createProduct, isLoading: isCreatingProduct } = useProducts();
-    const { categoriesPage } = useCategories();
+    const { categoriesPage, fetchActiveParentCategories } = useCategories();
+    const { hierarchyData, fetchHierarchy } = useCategoryHierarchy();
     const { brandsPage } = useBrands();
 
-    const categories = categoriesPage?.content ?? [];
+    const parentCategories = categoriesPage?.content ?? [];
     const brands = brandsPage?.content ?? [];
+    const subCategories = hierarchyData?.subCategories ?? [];
 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCreateConfirmModal, setShowCreateConfirmModal] = useState(false);
@@ -94,12 +102,42 @@ const ProductAddPage: React.FC = () => {
     const [formData, setFormData] = useState<FormFields>(initialFormState);
     const [validationErrors, setValidationErrors] = useState<ValidationError>({});
 
+    // Fetch active parent categories on mount
+    useEffect(() => {
+        fetchActiveParentCategories();
+    }, [fetchActiveParentCategories]);
+
+    // Fetch subcategories when parent category changes
+    useEffect(() => {
+        if (formData.parentCategoryId && formData.parentCategoryId > 0) {
+            fetchHierarchy(formData.parentCategoryId);
+            // Reset selected subcategory when parent changes
+            setFormData(prev => ({
+                ...prev,
+                categoryId: 0
+            }));
+        }
+    }, [formData.parentCategoryId, fetchHierarchy]);
+
+    // Helper - Hiển thị tên danh mục con đã chọn
+    const getSelectedSubCategoryName = useCallback(() => {
+        if (!formData.categoryId) return '';
+        const subcategory = subCategories.find(c => c.categoryId === formData.categoryId);
+        return subcategory ? subcategory.name : '';
+    }, [formData.categoryId, subCategories]);
+
+    // Helper - Hiển thị tên danh mục cha đã chọn
+    const getSelectedParentCategoryName = useCallback(() => {
+        if (!formData.parentCategoryId) return '';
+        const parentCategory = parentCategories.find(c => c.categoryId === formData.parentCategoryId);
+        return parentCategory ? parentCategory.name : '';
+    }, [formData.parentCategoryId, parentCategories]);
+
     const handlePriceInput = (value: string): number => {
         const numericValue = value.replace(/[^\d]/g, '');
         const cleanValue = numericValue.replace(/^0+/, '');
         return cleanValue ? parseInt(cleanValue, 10) : 0;
     };
-
 
     // Xử lý thay đổi input
     const handleInputChange = useCallback((
@@ -125,11 +163,26 @@ const ProductAddPage: React.FC = () => {
                     newData[name] = handlePriceInput(value);
                     break;
                 case 'categoryId':
+                    newData.categoryId = parseInt(value, 10) || 0;
+                    break;
+                case 'parentCategoryId':
+                    newData.parentCategoryId = parseInt(value, 10) || 0;
+                    // Reset danh mục con khi thay đổi danh mục cha
+                    newData.categoryId = 0;
+                    break;
                 case 'brandId':
-                    newData[name] = parseInt(value, 10) || 0;
+                    newData.brandId = parseInt(value, 10) || 0;
                     break;
                 case 'description':
-                    newData.description = value;
+                    // Giới hạn độ dài của mô tả
+                    if (value.length > DESCRIPTION_MAX_LENGTH) {
+                        setValidationErrors(prev => ({
+                            ...prev,
+                            description: `Mô tả không được vượt quá ${DESCRIPTION_MAX_LENGTH} ký tự`
+                        }));
+                    } else {
+                        newData.description = value;
+                    }
                     break;
                 case 'status':
                     newData.status = type === 'checkbox' ? (e.target as HTMLInputElement).checked : Boolean(value);
@@ -195,9 +248,9 @@ const ProductAddPage: React.FC = () => {
     const validateForm = useCallback((): boolean => {
         const errors: ValidationError = {};
 
-        // Validate danh mục
+        // Validate danh mục con
         if (!formData.categoryId) {
-            errors.categoryId = 'Vui lòng chọn danh mục';
+            errors.categoryId = 'Vui lòng chọn danh mục con';
         }
 
         // Validate thương hiệu
@@ -217,6 +270,8 @@ const ProductAddPage: React.FC = () => {
             errors.description = 'Mô tả không được để trống';
         } else if (formData.description.length < 10) {
             errors.description = 'Mô tả phải có ít nhất 10 ký tự';
+        } else if (formData.description.length > DESCRIPTION_MAX_LENGTH) {
+            errors.description = `Mô tả không được vượt quá ${DESCRIPTION_MAX_LENGTH} ký tự`;
         }
 
         // Validate giá
@@ -248,10 +303,18 @@ const ProductAddPage: React.FC = () => {
             setIsSubmitting(true);
             setError(null);
 
+            // Kiểm tra lại độ dài mô tả một lần nữa trước khi gửi
+            if (formData.description.length > DESCRIPTION_MAX_LENGTH) {
+                throw new Error(`Mô tả sản phẩm không được vượt quá ${DESCRIPTION_MAX_LENGTH} ký tự`);
+            }
+
             const productData: ProductCreateRequest = {
                 ...formData,
                 slug: generateSlug(formData.name)
             };
+
+            // Xóa trường parentCategoryId không cần thiết khi gửi lên server
+            delete (productData as any).parentCategoryId;
 
             const result = await createProduct(productData, thumbnailFile || undefined);
 
@@ -262,9 +325,18 @@ const ProductAddPage: React.FC = () => {
                 throw new Error('Không thể tạo sản phẩm');
             }
         } catch (error) {
-            const errorMessage = error instanceof Error
-                ? error.message
-                : 'Đã xảy ra lỗi không mong muốn khi tạo sản phẩm';
+            let errorMessage = 'Đã xảy ra lỗi không mong muốn khi tạo sản phẩm';
+
+            if (error instanceof Error) {
+                errorMessage = error.message;
+
+                // Xử lý các lỗi từ máy chủ một cách cụ thể hơn
+                if (errorMessage.includes('Data too long for column') ||
+                    errorMessage.includes('data truncation')) {
+                    errorMessage = `Dữ liệu mô tả quá dài cho cột trong database. Vui lòng giảm độ dài xuống dưới ${DESCRIPTION_MAX_LENGTH} ký tự.`;
+                }
+            }
+
             toast.error(errorMessage);
             setError(errorMessage);
             console.error('Error creating product:', error);
@@ -293,6 +365,10 @@ const ProductAddPage: React.FC = () => {
             }
         };
     }, [thumbnailPreview]);
+
+    // Hiển thị số ký tự hiện tại của mô tả
+    const descriptionCharCount = formData.description.length;
+    const isDescriptionTooLong = descriptionCharCount > DESCRIPTION_MAX_LENGTH;
 
     return (
         <div className="space-y-6">
@@ -361,6 +437,33 @@ const ProductAddPage: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* Selected Category Info */}
+                            {(formData.parentCategoryId > 0 || formData.categoryId > 0) && (
+                                <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg">
+                                    <div className="flex flex-col sm:flex-row gap-2 text-sm">
+                                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                            <Package className="w-4 h-4"/>
+                                            <span className="font-medium">Danh mục:</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            {formData.parentCategoryId > 0 && (
+                                                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800/30 text-blue-700 dark:text-blue-300 rounded">
+                                                    {getSelectedParentCategoryName()}
+                                                </span>
+                                            )}
+                                            {formData.parentCategoryId > 0 && formData.categoryId > 0 && (
+                                                <ChevronRight className="w-4 h-4 text-blue-500 dark:text-blue-400"/>
+                                            )}
+                                            {formData.categoryId > 0 && (
+                                                <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-800/30 text-indigo-700 dark:text-indigo-300 rounded">
+                                                    {getSelectedSubCategoryName()}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Error Alert */}
                             {error && (
                                 <div className="flex items-center p-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl">
@@ -373,14 +476,48 @@ const ProductAddPage: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left Column */}
                                 <div className="space-y-6">
-                                    {/* Category Selection */}
+                                    {/* Parent Category Selection (for filtering) */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Danh mục <span className="text-red-500">*</span>
+                                            Danh mục cha <span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                 <Package className="h-4 w-4 text-indigo-500/70 dark:text-gray-500"/>
+                                            </div>
+                                            <select
+                                                name="parentCategoryId"
+                                                value={formData.parentCategoryId}
+                                                onChange={handleInputChange}
+                                                className={`block w-full pl-9 pr-3 py-2 border rounded-lg text-sm
+                                                    border-gray-200 dark:border-gray-700 focus:ring-primary
+                                                    bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                                                    focus:outline-none focus:ring-2 transition-all duration-200`}
+                                                disabled={isLoading}
+                                            >
+                                                <option value="0">Chọn danh mục cha</option>
+                                                {parentCategories.map((category: CategoryResponse) => (
+                                                    <option key={category.categoryId} value={category.categoryId}>
+                                                        {category.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {!formData.parentCategoryId && (
+                                            <div className="text-amber-500 text-sm mt-1">
+                                                Chọn danh mục cha để xem danh sách danh mục con
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Sub Category Selection (actual categoryId for product) */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Danh mục con <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <ChevronRight className="h-4 w-4 text-indigo-500/70 dark:text-gray-500"/>
                                             </div>
                                             <select
                                                 name="categoryId"
@@ -393,10 +530,10 @@ const ProductAddPage: React.FC = () => {
                                                 }
                                                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
                                                     focus:outline-none focus:ring-2 transition-all duration-200`}
-                                                disabled={isLoading}
+                                                disabled={isLoading || !formData.parentCategoryId || formData.parentCategoryId === 0}
                                             >
-                                                <option value="0">Chọn danh mục</option>
-                                                {categories.map((category: CategoryResponse) => (
+                                                <option value="0">Chọn danh mục con</option>
+                                                {subCategories.map((category: CategoryResponse) => (
                                                     <option key={category.categoryId} value={category.categoryId}>
                                                         {category.name}
                                                     </option>
@@ -407,6 +544,11 @@ const ProductAddPage: React.FC = () => {
                                             <div className="flex items-center gap-x-1 text-red-500 text-sm">
                                                 <AlertCircle className="w-4 h-4"/>
                                                 <span>{validationErrors.categoryId}</span>
+                                            </div>
+                                        )}
+                                        {subCategories.length === 0 && formData.parentCategoryId > 0 && (
+                                            <div className="text-amber-600 text-sm">
+                                                Danh mục cha này không có danh mục con nào
                                             </div>
                                         )}
                                     </div>
@@ -476,7 +618,10 @@ const ProductAddPage: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
+                                </div>
 
+                                {/* Right Column */}
+                                <div className="space-y-6">
                                     {/* Product Description */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -489,7 +634,7 @@ const ProductAddPage: React.FC = () => {
                                             rows={4}
                                             placeholder="Nhập mô tả sản phẩm"
                                             className={`block w-full px-3 py-2 border rounded-lg text-sm
-                                                ${validationErrors.description
+                                                ${isDescriptionTooLong || validationErrors.description
                                                 ? 'border-red-500 focus:ring-red-500'
                                                 : 'border-gray-200 dark:border-gray-700 focus:ring-primary'
                                             }
@@ -497,18 +642,28 @@ const ProductAddPage: React.FC = () => {
                                                 focus:outline-none focus:ring-2 transition-all duration-200
                                                 min-h-[120px] resize-y`}
                                             disabled={isLoading}
+                                            maxLength={DESCRIPTION_MAX_LENGTH}
                                         />
-                                        {validationErrors.description && (
-                                            <div className="flex items-center gap-x-1 text-red-500 text-sm">
-                                                <AlertCircle className="w-4 h-4"/>
-                                                <span>{validationErrors.description}</span>
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                {validationErrors.description ? (
+                                                    <div className="flex items-center gap-x-1 text-red-500 text-sm">
+                                                        <AlertCircle className="w-4 h-4"/>
+                                                        <span>{validationErrors.description}</span>
+                                                    </div>
+                                                ) : isDescriptionTooLong ? (
+                                                    <div className="flex items-center gap-x-1 text-red-500 text-sm">
+                                                        <AlertCircle className="w-4 h-4"/>
+                                                        <span>Mô tả quá dài, vui lòng rút ngắn</span>
+                                                    </div>
+                                                ) : null}
                                             </div>
-                                        )}
+                                            <div className={`text-xs ${isDescriptionTooLong ? 'text-red-500' : 'text-gray-500'}`}>
+                                                {descriptionCharCount}/{DESCRIPTION_MAX_LENGTH}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Right Column */}
-                                <div className="space-y-6">
                                     {/* Price */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -647,7 +802,7 @@ const ProductAddPage: React.FC = () => {
                                                             <p className="pl-1">hoặc kéo thả</p>
                                                         </div>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            PNG, JPG, GIF tối đa 5MB
+                                                            PNG, JPG, GIF, AVIF tối đa 5MB
                                                         </p>
                                                     </>
                                                 )}
@@ -688,13 +843,13 @@ const ProductAddPage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleShowCreateConfirm}
-                                    disabled={isLoading || !formData.name.trim()}
+                                    disabled={isLoading || !formData.name.trim() || isDescriptionTooLong}
                                     className={`
                                         inline-flex items-center px-4 py-2 text-sm font-medium
                                         text-white bg-primary rounded-lg
                                         focus:outline-none focus:ring-2 focus:ring-offset-2
                                         focus:ring-primary transition-all duration-200
-                                        ${(isLoading || !formData.name.trim())
+                                        ${(isLoading || !formData.name.trim() || isDescriptionTooLong)
                                         ? 'opacity-50 cursor-not-allowed'
                                         : 'hover:bg-primary/90'
                                     }
