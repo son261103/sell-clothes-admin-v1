@@ -174,14 +174,9 @@ export const menuItems: IMenuItem[] = [
         icon: <BarChartHorizontal className="w-5 h-5" />,
         children: [
             {
-                title: 'Báo cáo doanh số',
-                path: '/admin/reports/sales',
+                title: 'Báo cáo',
+                path: '/admin/reports',
                 icon: <PieChart className="w-4 h-4" />,
-            },
-            {
-                title: 'Phân tích',
-                path: '/admin/reports/analytics',
-                icon: <BarChartHorizontal className="w-4 h-4" />,
             },
         ]
     },

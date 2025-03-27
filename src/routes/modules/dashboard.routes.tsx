@@ -1,17 +1,17 @@
 import { RouteObjectWithMeta } from '../types';
-import DashboardPage from "../../pages/Dashboard/DashboardPage";
+import StatisticsPage from "@/pages/StatisticsReports/StatisticsPage.tsx";
 
 export const dashboardRoutes: RouteObjectWithMeta[] = [
     {
         index: true,
-        element: <DashboardPage />,
+        element: <StatisticsPage />,
         meta: {
             requiredPermissions: []
         }
     },
     {
         path: 'dashboard',
-        element: <DashboardPage />,
+        element: <StatisticsPage />,
         meta: {
             requiredPermissions: []
         }
